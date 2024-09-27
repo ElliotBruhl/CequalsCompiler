@@ -1,4 +1,7 @@
 #include "tokenizer.h"
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 Token *createToken(int line, int type, char *valStart, int valLen, Token *prev) {
     Token *newToken = (Token *)malloc(sizeof(Token));

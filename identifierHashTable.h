@@ -1,7 +1,7 @@
 #ifndef IDENTIFIERHASHTABLE_H
 #define IDENTIFIERHASHTABLE_H
+#include <stdio.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #define TABLE_SIZE 509 //probably overkill - use prime to help distribution

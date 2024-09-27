@@ -1,10 +1,6 @@
-#include <stdio.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
 #ifndef TOKENIZER_H
 #define TOKENIZER_H
+#include <stdio.h>
 #define MAX_BUFFER_SIZE 256
 
 typedef struct Token {

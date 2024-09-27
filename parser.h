@@ -1,6 +1,6 @@
-#include <stdbool.h>
 #ifndef PARSER_H
 #define PARSER_H
+#include <stdbool.h>
 
 typedef enum {
     NODE_MATH_OP,

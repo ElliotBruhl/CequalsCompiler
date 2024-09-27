@@ -2,7 +2,6 @@
 #include "parser.h"
 #include "identifierHashTable.h"
 #include <stdio.h>
-#include <stdlib.h>
 
 int main() {
     
