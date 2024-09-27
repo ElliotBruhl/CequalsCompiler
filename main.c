@@ -1,5 +1,6 @@
 #include "tokenizer.h"
 #include "parser.h"
+#include "identifierHashTable.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,11 +10,12 @@ int main() {
     if (file == NULL)
         exit(2);
     Token *tokens = tokenizer(file);
-
     printTokens(tokens);
-
     freeTokens(tokens);
 
-    return 0;
+    HashTable* table = createTable();
+    freeHashTable(table);
+
+    exit(0);
 }
 //build command: gcc main.c tokenizer.c parser.c -o main

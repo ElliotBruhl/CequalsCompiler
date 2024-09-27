@@ -20,27 +20,23 @@ typedef enum {
     OP_BINARY_MUL,       // *
     OP_BINARY_DIV,       // /
     OP_BINARY_MOD,       // %
-
         // Comparison
     OP_BINARY_LT,        // <
     OP_BINARY_GT,        // >
     OP_BINARY_LTE,       // <=
     OP_BINARY_GTE,       // >=
     OP_BINARY_NEQ,       // !=
-
+    OP_BINARY_EQU,       // ==
         // Bitwise
     OP_BINARY_AND,       // &
     OP_BINARY_OR,        // |
     OP_BINARY_XOR,       // ^
-
         // Logical
     OP_LOGICAL_AND,      // &&
     OP_LOGICAL_OR,       // ||
-
     // UNARY OPERATORS
     OP_UNARY_NOT,        // !
     OP_UNARY_BIT_NOT,    // ~
-
     // ASSIGNMENT OPERATORS
     OP_ASSIGN,           // =
     OP_ASSIGN_ADD,       // +=
@@ -51,7 +47,7 @@ typedef enum {
     OP_ASSIGN_AND,       // &=
     OP_ASSIGN_OR,        // |=
     OP_ASSIGN_XOR,       // ^=
-
+    OP_ASSIGN_BIT_NOT    // ~=
 } OperatorType;
 
 

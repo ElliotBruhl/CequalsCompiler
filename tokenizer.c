@@ -1,11 +1,4 @@
 #include "tokenizer.h"
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define MAX_BUFFER_SIZE 256
 
 Token *createToken(int line, int type, char *valStart, int valLen, Token *prev) {
     Token *newToken = (Token *)malloc(sizeof(Token));
