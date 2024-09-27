@@ -14,6 +14,7 @@ Exit codes:
 2 - file failed to open
 3 - line over length 255 chars (prevents buffer overflow)
 4 - unknown char encountered
+5 - hash collision for identifier (update TABLE_SIZE in .h file)
 
 Token Types:
   0: identifiers
@@ -50,8 +51,6 @@ typedef struct ASTNodeLL {
         IfNode* ifPtr;
         ElseNode* elsePtr;
         RetNode* retPtr;
-        ContNode* contPtr;
-        BreakNode* breakPtr;
     } node;
     struct ASTNodeLL* next;
 } ASTNodeLL;
@@ -64,5 +63,20 @@ each AST node type:
   if declaration -> mathOp bracket(seperator) ... bracket(seperator)
   else -> if(keyword) OR (mathOp bracket(seperator) ... bracket(seperator))
   return -> number/identifier/mathOp semicolon(seperator)
-  continue -> semicolon(seperator)
-  break -> semicolon(seperator)
+
+IDENTIFIER HASH TABLE:
+A hash table is used to store all of the identifers when parsing to avoid string operations. It uses the DJB2 algorithm and has a size of 509.
+typedef struct {
+    //add neccesary info later
+} FuncInfo;
+typedef struct Entry {
+    char* name;
+    bool isVar;
+    union {
+        int varValue;
+        FuncInfo* funcInfo;
+    } value;
+} Entry;
+typedef struct {
+    Entry* entries[TABLE_SIZE];
+} HashTable;
