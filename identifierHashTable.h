@@ -35,15 +35,13 @@ HashTable* createTable() {
     }
     return table;
 }
-void insertVar(HashTable* table, char* nameToStore, int valToStore) {
-    unsigned int index = hash(nameToStore);
-
+void insertVar(HashTable* table, char* nameToStore, int valToStore, unsigned int hashVal) {
     Entry* entry = malloc(sizeof(Entry));
     entry->isVar = true;
     entry->name = strdup(nameToStore);
     entry->value.varValue = valToStore;
 
-    table->entries[index] = entry;
+    table->entries[hashVal] = entry;
 }
 void insertFunc(HashTable* table, char* nameToStore) {
     unsigned int index = hash(nameToStore);
@@ -55,7 +53,7 @@ void insertFunc(HashTable* table, char* nameToStore) {
 
     table->entries[index] = entry;
 }
-Entry* lookup(HashTable* table, char* nameToLookup) {
+Entry* lookup(HashTable* table, char* nameToLookup) { //null return can mean hash collision or no value - make sure both are error states
     unsigned int index = hash(nameToLookup);
     Entry* entry = table->entries[index];
 
@@ -63,8 +61,7 @@ Entry* lookup(HashTable* table, char* nameToLookup) {
         return NULL; 
     if (strcmp(entry->name, nameToLookup) == 0) //value matches
         return entry;
-    else //collision
-        exit(5);
+    return NULL; //hash collision
 }
 void freeHashTable(HashTable* table) {
     if (!table) return;

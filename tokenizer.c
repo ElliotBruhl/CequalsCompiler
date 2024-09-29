@@ -3,17 +3,21 @@
 #include <string.h>
 #include <ctype.h>
 
-Token *createToken(int line, int type, char *valStart, int valLen, Token *prev) {
-    Token *newToken = (Token *)malloc(sizeof(Token));
-    if (newToken == NULL)
-        exit(1);
+Token* createToken(int line, TokenType type, char* valStart, int valLen, Token* prev) {
+    Token* newToken = (Token*)malloc(sizeof(Token));
+    if (newToken == NULL) {
+        printf("Malloc Failed in createToken");
+        return NULL;
+    }
     
     newToken->lineNum = line;
     newToken->tokenType = type;
 
-    newToken->value = (char *)malloc(valLen);
-    if (newToken->value == NULL)
-        exit(1);
+    newToken->value = (char*)malloc(valLen);
+    if (newToken->value == NULL) {
+        printf("Malloc Failed in createToken");
+        return NULL;
+    }
     strncpy(newToken->value, valStart, valLen);
     newToken->value[valLen] = '\0';
 
@@ -26,17 +30,17 @@ Token *createToken(int line, int type, char *valStart, int valLen, Token *prev) 
 
     return newToken;
 }
-void printTokens(Token *head) {
-    Token *current = head;
+void printTokens(Token* head) {
+    Token* current = head;
     while (current != NULL) {
         printf("Line: %d, Token type: %d, Value: %s\n", current->lineNum, current->tokenType, current->value);
         current = current->nextToken;
     }
 }
-void freeTokens(Token *head) {
-    Token *current = head;
+void freeTokens(Token* head) {
+    Token* current = head;
     while (current != NULL) {
-        Token *next = current->nextToken;
+        Token* next = current->nextToken;
         free(current->value);
         free(current);
         current = next;
@@ -44,10 +48,6 @@ void freeTokens(Token *head) {
 }
 
 int getOperatorLength(char c, char cNext) {
-    /* non operator -> 0, one char op -> 1, two char op -> 2
-    oneCharOps can be made into two char ops by adding "=". Special case: "&"
-    and "|" can also have "&" or "|" appened.
-    */
     if ((c == '&' && cNext == '&') || (c == '|' && cNext == '|')) return 2; //special case
 
     char oneCharOps[] = {'+', '-', '*', '/', '%', '=', '<', '>', '!', '&', '|', '~', '^'};
@@ -63,13 +63,8 @@ int getOperatorLength(char c, char cNext) {
     }
     return 0; // not operator
 }
-int getKeywordLength(char *c) {
-    /* loops through each defined keyword until mismatch in chars is found.
-    If no mismatch, length of keyword is returned. If none found, 0 returned.
-    note: spaces after keywords that take args (all but continue and break) are required. 
-        this means continue and break will be considered keywords by tokenizer even if found as break123 for ex, but all others will not
-    */
-    char *keywords[] = {"var ", "func ", "while ", "if ", "else ", "return ", "continue", "break"}; //
+int getKeywordLength(char* c) {
+    char* keywords[] = {"var", "func", "while", "if", "else", "return", "continue", "break"};
     const int KEY_LEN = 8;
 
     for (int i = 0; i < KEY_LEN; i++) {
@@ -79,27 +74,26 @@ int getKeywordLength(char *c) {
                 break;
             }
         }
-        if (keywords[i][j] == '\0') {
+        if (keywords[i][j] == '\0' && !isalnum(*(c+j))) {
             return j;
         }
     }
     return 0;
 }
 
-Token *tokenizer(FILE *file) {
+Token* tokenizer(FILE* file) {
     char buffer[MAX_BUFFER_SIZE];
     int lineNum = 1;
-    Token *head = NULL;
-    Token *prevToken = NULL;
+    Token* head = NULL;
+    Token* prevToken = NULL;
     int opLen;
 
     while (fgets(buffer, sizeof(buffer), file) != NULL) { // each line is stored in buffer
 
-        if ((strlen(buffer) == MAX_BUFFER_SIZE - 1) && (buffer[MAX_BUFFER_SIZE - 2] != '\n')) { // set limit on line size to prevent bugs when new buffer
-            printf("Error: buffer overflow - line %d over length 255 chars\n", lineNum);
+        if ((strlen(buffer) == MAX_BUFFER_SIZE - 1) && (buffer[MAX_BUFFER_SIZE - 2] != '\n')) { // set limit on line size to prevent bugs on split tokens
+            printf("Error: line %d over length 255 chars\n", lineNum);
             fclose(file);
-            freeTokens(head);
-            exit(3);
+            return NULL;
         }
 
         // loop over each char in buffer
@@ -115,37 +109,36 @@ Token *tokenizer(FILE *file) {
             else if (isalpha(buffer[i])) { // identifiers and keywords
                 int keywordLen = getKeywordLength(&buffer[i]);
                 if (keywordLen != 0) { // keyword
-                    tokenType = 3;
+                    tokenType = TOKEN_KEYWORD;
                     end += keywordLen - 1;
                 }
                 else { // identifier
-                    tokenType = 0;
+                    tokenType = TOKEN_IDENTIFIER;
                     while (isalnum(buffer[end + 1]))
                         end++;
                 }
             }
             else if (isdigit(buffer[i]) || ((buffer[i] == '-' || buffer[i] == '+') && isdigit(buffer[i+1]))) { // numbers, can start with '+' or '-'
-                tokenType = 1;
+                tokenType = TOKEN_NUMBER;
                 while (isdigit(buffer[end + 1]))
                     end++;
             }
-            else if (buffer[i] == '(' || buffer[i] == ')' || // seperators
+            else if (buffer[i] == '(' || buffer[i] == ')' || buffer[i] == ',' || // seperators
                     buffer[i] == '{' || buffer[i] == '}' || buffer[i] == ';') {
-                tokenType = 4;
+                tokenType = TOKEN_SEPERATOR;
             }
             else if ((opLen = getOperatorLength(buffer[i], buffer[i + 1])) != 0) { // operator
-                tokenType = 2;
+                tokenType = TOKEN_OPERATOR;
                 end += opLen - 1;
             }
             else { // unknown char
                 printf("Unknown char %c on line %d, column %d", buffer[i], lineNum, i + 1);
                 fclose(file);
-                freeTokens(head);
-                exit(4);
+                return NULL;
             }
 
             // create token and put into linked list
-            Token *newToken = createToken(lineNum, tokenType, &buffer[i], end - i + 1, prevToken);
+            Token* newToken = createToken(lineNum, tokenType, &buffer[i], end - i + 1, prevToken);
             if (head == NULL)
                 head = newToken;
             prevToken = newToken;

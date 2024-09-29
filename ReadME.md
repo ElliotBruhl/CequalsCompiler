@@ -1,82 +1,31 @@
+EXIT CODES:
+  0 - sucess
+  1 - tokenizer failed
+  2 - file read failed
+
 TOKENIZER:
-Stores data in double linked list of structs:
-  typedef struct Token {
-      int tokenType;
-      char* value;
-      struct Token* prevToken;
-      struct Token* nextToken;
-  } Token;
-  the value field is always null terminated
-  
-Exit codes:
-0 - sucess
-1 - malloc failed
-2 - file failed to open
-3 - line over length 255 chars (prevents buffer overflow)
-4 - unknown char encountered
-5 - hash collision for identifier (update TABLE_SIZE in .h file)
+  -Stores data in double linked list where each node holds line number, token type, token value, previous, and next:
+  -Token Types:
+    0: identifiers - all alphanumeric strings, except keywords, that begin with a letter and continue until non-alphanumeric char encountered.
+    1: numbers - positive or negative numbers. Positive or negative signs must immediately precede a number (no whitespace between) if present. (no sign defaults to positive).
+    2: operators - all symbols included in language:
+      {'+', '-', '*', '/', '%', '=', '<', '>', '!', '&', '|', '~', '^'}, those with '=' after, and && or ||.
+    3: keywords - all language defined words:
+      {"var", "func", "while", "if", "else", "return", "continue", "break"}
+      note that keywords will be ignored if followed by alphanumeric char: break1 is not a keyword but break+ is a keyword (and then operator).
+    4: separators
+    parenthesis, brackets, semicolons, and commas
 
-Token Types:
-  0: identifiers
-  all things that begin with a letter and continue until non-alphanumeric char encountered except keywords.
-  
-  1: numbers
-  Overflow should be handled with wraparound but is undefined behavior so don't do it.
-  note that negatives can be stored if '-' is used immediately before a digit.
-  + and - can come immediately before number and will be treated as part of number (ex 1+1 will be 2 tokens (2 numbers) but 1 + 1 will be 3 tokens (2 numbers and operator))
-  
-  2: operators
-  all symbols included in language:
-    {'+', '-', '*', '/', '%', '=', '<', '>', '!', '&', '|', '~', '^'},
-    and those symbols with = after for assignment,
-    and && or ||.
-  
-  3: keywords
-  all language defined words:
-    {"var ", "func ", "while ", "if ", "else ", "return ", "continue", "break"}
-  note that spaces must follow all keywords if they are to be considered except for return and continue (the no arg keywords)
-  
-  4: separators
-  parenthesis, brackets, semicolons. Don't mean anything on own but necessary for syntax.
-
-SYNTAX:
-Linked list structure again for making Abstract Syntax Trees (ASTs):
-typedef struct ASTNodeLL {
-    int type; //node type
-    union {
-        MathOpNode* mathOpPtr;
-        VarNode* varPtr;
-        FuncNode* funcPtr;
-        WhileNode* whilePtr;
-        IfNode* ifPtr;
-        ElseNode* elsePtr;
-        RetNode* retPtr;
-    } node;
-    struct ASTNodeLL* next;
-} ASTNodeLL;
-
-each AST node type:
-  math operations -> begin and end with parenthesis can contain: operators, numbers, identifiers, mathOp
-  variable declaration (var) -> var(keyword), name(identifier) equals(operator) identifier/number/mathOp semicolon(seperator)
-  func declaration -> ...
-  while declaration -> mathOp bracket(seperator) ... bracket(seperator)
-  if declaration -> mathOp bracket(seperator) ... bracket(seperator)
-  else -> if(keyword) OR (mathOp bracket(seperator) ... bracket(seperator))
-  return -> number/identifier/mathOp semicolon(seperator)
+PARSER:
+-stores ASTs in double linked list structure where each node holds sub-node type indicator, sub-node of specific type, previous, and next
+-each AST node type (see parser.h for more):
+  math operation
+  var declaration,
+  var re-assignment,
+  function node,
+  while node,
+  if node
 
 IDENTIFIER HASH TABLE:
-A hash table is used to store all of the identifers when parsing to avoid string operations. It uses the DJB2 algorithm and has a size of 509.
-typedef struct {
-    //add neccesary info later
-} FuncInfo;
-typedef struct Entry {
-    char* name;
-    bool isVar;
-    union {
-        int varValue;
-        FuncInfo* funcInfo;
-    } value;
-} Entry;
-typedef struct {
-    Entry* entries[TABLE_SIZE];
-} HashTable;
+-A hash table is used to store all of the identifers and their info when parsing to avoid string operations.
+-It uses the DJB2 algorithm and has a default size of 509.

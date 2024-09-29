@@ -4,14 +4,12 @@
 
 typedef enum {
     NODE_MATH_OP,
-    NODE_VAR,
+    NODE_VAR_DECL,
+    NODE_VAR_ASSIGN,
     NODE_FUNC, 
     NODE_WHILE,
-    NODE_IF,   
-    NODE_ELSE, 
-    NODE_RET,
+    NODE_IF,
 } NodeType;
-
 typedef enum {
     // BINARY OPERATORS
         // Arithmetic
@@ -49,9 +47,7 @@ typedef enum {
     OP_ASSIGN_XOR,       // ^=
     OP_ASSIGN_BIT_NOT    // ~=
 } OperatorType;
-
-
-typedef struct {
+typedef struct { //use when operator found
     OperatorType opType; //number each operator to avoid string comparisons
 
     bool isLeftToken; //is left a nested expression or leaf node token (number or identifier)
@@ -59,39 +55,68 @@ typedef struct {
         struct Token *leftToken;
         struct MathOpNode *leftNode; 
     } left;
-
     bool isRightToken; //is right a nested expression or leaf node token (number or identifier)
     union {
         struct Token *rightToken;
         struct MathOpNode *rightNode;
     } right;
 } MathOpNode;
-typedef struct {
-    char* varName;
+typedef struct { //use when var keyword and '=' found
+    unsigned int nameHash;
     bool isToken; //token or mathOp stored in union
     union {
         struct Token *token;
         struct MathOpNode *node;
     } value;
-} VarNode;
-typedef struct FuncNode FuncNode;
-typedef struct WhileNode WhileNode;
-typedef struct IfNode IfNode;
-typedef struct ElseNode ElseNode;
-typedef struct RetNode RetNode;
-
+} VarDeclNode;
+typedef struct {
+    unsigned int nameHash;
+    OperatorType opType;
+    bool isToken; //token or mathOp stored in union
+    union {
+        struct Token *token;
+        struct MathOpNode *node;
+    } value;
+} VarAssignNode;
+typedef struct FuncNode { //use when func keyword found
+    unsigned int nameHash;
+    int numArgs;
+    int* args;
+    //body start/end?
+} FuncNode;
+typedef struct WhileNode { //use when while keywork found
+    bool isExprToken; //is it a nested expression or leaf node token (number or identifier)
+    union {
+        struct Token *exprToken;
+        struct MathOpNode *exprNode; 
+    } condition;
+    //body start/end?
+} WhileNode;
+typedef struct IfNode {
+    bool isExprToken;
+    union {
+        struct Token *exprToken;
+        struct MathOpNode *exprNode; 
+    } condition;
+    //body start/end?
+    bool hasElse;
+    //else start/end?
+} IfNode;
 typedef struct ASTNode { //stores in linked list structure: which type of node stored, pointer to current, and pointer to next
     NodeType type; //node type
     union {
         MathOpNode* mathOpPtr;
-        VarNode* varPtr;
+        VarDeclNode* varDeclPtr;
+        VarAssignNode* varAssignPtr;
         FuncNode* funcPtr;
         WhileNode* whilePtr;
         IfNode* ifPtr;
-        ElseNode* elsePtr;
-        RetNode* retPtr;
     } node;
+    struct ASTNode* prev;
     struct ASTNode* next;
 } ASTNode;
+
+void freeASTNodes(ASTNode* head);
+ASTNode* parseTokens(Token* head);
 
 #endif
