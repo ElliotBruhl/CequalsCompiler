@@ -6,24 +6,34 @@
 int main() {
     //TOKENIZE
     FILE *file = fopen("text.txt", "r");
-    if (file == NULL)
-        return 2;
+    if (file == NULL) {
+        printf("FATAL ERROR: failed to read input file\n");
+        return -1;
+    }
     Token *tokens = tokenizer(file);
     if (tokens == NULL) {
+        printf("FATAL ERROR: tokenizer failed\n");
         freeTokens(tokens);
-        return 1;
+        return -2;
     }
     printTokens(tokens);
 
     //PARSE
     HashTable* table = createTable();
     ASTNode* ASTs = parseTokens(tokens); //finish other AST types
+    if (ASTs == NULL) {
+        printf("FATAL ERROR: parser failed\n");
+        freeHashTable(table);
+        //freeASTNodes(ASTs); segfaults
+        return -3;
+    }
+    printASTs(ASTs);
 
     //WRITE IR (LLVM)
     
     //CLEANUP
     freeHashTable(table);
-    freeASTNodes(ASTs); //still need to test this (after parseTokens is done)
+    //freeASTNodes(ASTs); //segfaults
     freeTokens(tokens);
     return 0;
 }

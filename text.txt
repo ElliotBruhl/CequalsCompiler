@@ -1,2 +1,2 @@
-while+ while1 while whilewhile while; while()
-hello world
+var x = 5;
+var a = 4;

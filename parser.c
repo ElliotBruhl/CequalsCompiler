@@ -1,7 +1,10 @@
 #include "parser.h"
-#include "tokenizer.h"
 #include "identifierHashTable.h"
+#include <stdlib.h>
 
+void printASTs(ASTNode* head) {
+    //make a good print func
+}
 
 void freeMathOpNode(MathOpNode* node) {
     if (node == NULL) {
@@ -52,6 +55,11 @@ void freeASTNodes(ASTNode* head) {
         current = next;
     }
 }
+Token* jumpToNext(Token* current) {
+    while (current->value[0] != ';' && current->nextToken != NULL)
+        current = current->nextToken;
+    return current;
+}
 
 ASTNode* createNode(NodeType nodeType, void* subNode, ASTNode* prevNode) {
     ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
@@ -71,10 +79,11 @@ ASTNode* createNode(NodeType nodeType, void* subNode, ASTNode* prevNode) {
     return newNode;
 }
 
-VarDeclNode* createVarDecl(char* varName, OperatorType opType, Token* tokens) {
+VarDeclNode* createVarDecl(Token* tokens) {
     VarDeclNode* node = NULL;
-    //check for valid declaration
     Token* curTok = tokens->nextToken;
+
+    //check for valid declaration
     if (curTok == NULL || curTok->tokenType != TOKEN_IDENTIFIER) {//next token is identifier
         printf("line %d: No var name found for var declaration.", tokens->lineNum);
         return NULL;
@@ -89,8 +98,7 @@ VarDeclNode* createVarDecl(char* varName, OperatorType opType, Token* tokens) {
         printf("line %d: No var value found for var declaration.", tokens->lineNum);
         return NULL;
     }
-    if ((curTok->tokenType == TOKEN_IDENTIFIER || curTok->tokenType == TOKEN_NUMBER) && curTok->nextToken != NULL //number or identifier followed by ';'
-            && curTok->nextToken->tokenType == TOKEN_SEPERATOR && curTok->nextToken->value[0] == ';') {
+    if ((curTok->tokenType == TOKEN_IDENTIFIER || curTok->tokenType == TOKEN_NUMBER) && curTok->nextToken != NULL && curTok->nextToken->value[0] == ';') { //number or identifier followed by ';'
         node = (VarDeclNode*)malloc(sizeof(VarDeclNode));
         if (node == NULL) {
             printf("malloc failed in creatVarDecl");
@@ -99,6 +107,7 @@ VarDeclNode* createVarDecl(char* varName, OperatorType opType, Token* tokens) {
         node->isToken = true;
         node->value.token = curTok;
         node->nameHash = hash(tokens->nextToken->value);
+        return node;
     }
     else {
         MathOpNode* opAssigned/* = createMathOpNode()*/;
@@ -111,11 +120,14 @@ VarDeclNode* createVarDecl(char* varName, OperatorType opType, Token* tokens) {
     }
 }
 
-ASTNode* parseTokens(Token* head) {
-    Token* curToken = head;
+ASTNode* parseTokens(Token* headToken) {
+    NodeType nodeType;
+    Token* curToken = headToken;
+    ASTNode* headNode = NULL;
+    ASTNode* prevNode = NULL;
+    void* subNode = NULL;
 
     while (curToken != NULL) {
-
         switch (curToken->tokenType) {
             case TOKEN_IDENTIFIER: //identifier
                 break;
@@ -126,21 +138,33 @@ ASTNode* parseTokens(Token* head) {
             case TOKEN_KEYWORD: //keywords
                 switch (curToken->value[0]) { //all keywords have unique first char
                     case 'v': //var
-
+                        nodeType = NODE_VAR_DECL;
+                        subNode = createVarDecl(curToken);
+                        curToken = jumpToNext(curToken);
                         break;
                     case 'f': //func
+                        nodeType = NODE_FUNC;
+                        //subNode = createFuncNode(curToken);
                         break;
                     case 'w': //while
+                        nodeType = NODE_WHILE;
+                        //subNode = createWhileNode(curToken);
                         break;
                     case 'i': //if
+                        nodeType = NODE_IF;
+                        //subNode = createIfNode(curToken);
                         break;
                     case 'e': //else
+                        //look for preceding if
                         break;
                     case 'r': //return
+                        //look if embedded in func and look for valid return val
                         break;
                     case 'c': //continue
+                        //look if in while
                         break;
                     case 'b': //break
+                        //look if in while
                         break;
                     default:
                         printf("unknown keyword %s", curToken->value);
@@ -153,5 +177,15 @@ ASTNode* parseTokens(Token* head) {
                 printf("Unknown token type %d", curToken->tokenType);
                 return NULL;
         }
+        //manage overarching linked list
+        if (subNode == NULL)
+            return NULL;
+        ASTNode* newNode = createNode(nodeType, subNode, prevNode);
+        if (headNode == NULL)
+            headNode = newNode;
+        prevNode = newNode;
+        //increment
+        curToken = curToken->nextToken;
     }
+    return headNode;
 }

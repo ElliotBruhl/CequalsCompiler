@@ -1,5 +1,6 @@
 #ifndef PARSER_H
 #define PARSER_H
+#include "tokenizer.h"
 #include <stdbool.h>
 
 typedef enum {
@@ -47,7 +48,7 @@ typedef enum {
     OP_ASSIGN_XOR,       // ^=
     OP_ASSIGN_BIT_NOT    // ~=
 } OperatorType;
-typedef struct { //use when operator found
+typedef struct MathOpNode { //use when operator found
     OperatorType opType; //number each operator to avoid string comparisons
 
     bool isLeftToken; //is left a nested expression or leaf node token (number or identifier)
@@ -61,7 +62,7 @@ typedef struct { //use when operator found
         struct MathOpNode *rightNode;
     } right;
 } MathOpNode;
-typedef struct { //use when var keyword and '=' found
+typedef struct VarDeclNode { //use when var keyword and '=' found
     unsigned int nameHash;
     bool isToken; //token or mathOp stored in union
     union {
@@ -69,7 +70,7 @@ typedef struct { //use when var keyword and '=' found
         struct MathOpNode *node;
     } value;
 } VarDeclNode;
-typedef struct {
+typedef struct VarAssignNode {
     unsigned int nameHash;
     OperatorType opType;
     bool isToken; //token or mathOp stored in union
@@ -118,5 +119,6 @@ typedef struct ASTNode { //stores in linked list structure: which type of node s
 
 void freeASTNodes(ASTNode* head);
 ASTNode* parseTokens(Token* head);
+void printASTs(ASTNode* head);
 
 #endif
