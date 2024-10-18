@@ -6,7 +6,7 @@
 Token* createToken(int line, TokenType type, char* valStart, int valLen, Token* prev) {
     Token* newToken = (Token*)malloc(sizeof(Token));
     if (newToken == NULL) {
-        printf("Malloc Failed in createToken");
+        printf("\033[1;31mMalloc Failed in createToken\033[0m\n");
         return NULL;
     }
     
@@ -15,7 +15,7 @@ Token* createToken(int line, TokenType type, char* valStart, int valLen, Token* 
 
     newToken->value = (char*)malloc(valLen);
     if (newToken->value == NULL) {
-        printf("Malloc Failed in createToken");
+        printf("\033[1;31mMalloc Failed in createToken\033[0m\n");
         return NULL;
     }
     strncpy(newToken->value, valStart, valLen);
@@ -48,26 +48,36 @@ void freeTokens(Token* head) {
 }
 
 int getOperatorLength(char c, char cNext) {
-    if ((c == '&' && cNext == '&') || (c == '|' && cNext == '|')) return 2; //special case
-
-    char oneCharOps[] = {'+', '-', '*', '/', '%', '=', '<', '>', '!', '&', '|', '~', '^'};
-    const int OPS_LEN = 13;
-
-    for (int i = 0; i < OPS_LEN; i++) {
-        if (c == oneCharOps[i]) { // one char op found
-            if (cNext == '=') { // two char op
-                return 2;
-            }
+    switch (c) {
+        case '=':
+            if (cNext == '=') return 2;
+        case '<':
+            if (cNext == '=' || cNext == '<') return 2;
+        case '>':
+            if (cNext == '=' || cNext == '>') return 2;
+        case '!':
+            if (cNext == '=') return 2;
+        case '&':
+            if (cNext == '&') return 2;
+        case '|':
+            if (cNext == '|') return 2;
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '%':
+        case '~':
+        case '^':
             return 1;
-        }
+        default:
+            return 0;
     }
-    return 0; // not operator
 }
 int getKeywordLength(char* c) {
-    char* keywords[] = {"var", "func", "while", "if", "else", "return", "continue", "break"};
-    const int KEY_LEN = 8;
+    char* keywords[] = {"var", "array", "func", "return", "while", "continue", "break", "if", "else"};
+    const int KEYWORDS_LEN = 9;
 
-    for (int i = 0; i < KEY_LEN; i++) {
+    for (int i = 0; i < KEYWORDS_LEN; i++) {
         int j = 0;
         for (; keywords[i][j] != '\0'; j++) {
             if (keywords[i][j] != *(c+j)) {
@@ -91,7 +101,7 @@ Token* tokenizer(FILE* file) {
     while (fgets(buffer, sizeof(buffer), file) != NULL) { // each line is stored in buffer
 
         if ((strlen(buffer) == MAX_BUFFER_SIZE - 1) && (buffer[MAX_BUFFER_SIZE - 2] != '\n')) { // set limit on line size to prevent bugs on split tokens
-            printf("Error: line %d over length 255 chars\n", lineNum);
+            printf("\033[1;31mError: line %d over length 255 chars\033[0m\n", lineNum);
             fclose(file);
             return NULL;
         }
@@ -101,11 +111,9 @@ Token* tokenizer(FILE* file) {
 
             int tokenType = -1;
             int end = i; // keeps track of end for multi-char tokens
-
-            if (isspace(buffer[i]))
-                continue; // skip to next char for whitespace
-            else if (buffer[i] == '#')
-                break; // skip to next line for comment
+            
+            if (buffer[i] == '#') break; // skip to next line for comment
+            else if (isspace(buffer[i])) continue; // skip to next char for whitespace
             else if (isalpha(buffer[i])) { // identifiers and keywords
                 int keywordLen = getKeywordLength(&buffer[i]);
                 if (keywordLen != 0) { // keyword
@@ -132,7 +140,7 @@ Token* tokenizer(FILE* file) {
                 end += opLen - 1;
             }
             else { // unknown char
-                printf("Unknown char %c on line %d, column %d", buffer[i], lineNum, i + 1);
+                printf("\033[1;31mUnknown char %c on line %d, column %d\033[0m\n", buffer[i], lineNum, i + 1);
                 fclose(file);
                 return NULL;
             }

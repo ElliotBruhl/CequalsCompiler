@@ -1,2 +1,8 @@
-var x = 5;
-var a = 4;
+#this is the text file that the compiler reads
+
+#tokenizer testing
+identifier
+0 +0 -0 9999999999999
++ - * / % = == < << <= > >> >= ! != & && | || ~ ^
+var array func return while continue break if else
+( ) { } , ;
