@@ -13,9 +13,9 @@ typedef enum {
     NODE_MATH_OP
 } NodeType;
 typedef enum {
-    OP_NONE,        // No operator
-        //Assignment
-    OP_ASSIGN,      // =
+                    // Special
+    OP_NONE,        // Null operator for leaf nodes of math operations
+    OP_ASSIGN,      // = (only for assignment and declaration)
                     // Arithmetic
     OP_ADD,         // +
     OP_SUB,         // -

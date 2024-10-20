@@ -1,16 +1,16 @@
 GENERAL INFO:
   -compiler is written in C
-  -output code is in LLVM assembly
-  -generally follows C syntax
+  -output code will be C initially, then LLVM or x86 assembly💀
+  -language generally follows C syntax as defined below
 
-EXIT CODES:
+EXIT CODES (main.c):
   0 - sucess
   -1 - file read failed
   -2 - tokenizer failed (should have specified error)
   -3 - symbol table creation failed
   -4 - parser failed (should have specified error)
 
-TOKENIZER:
+TOKENIZER (in tokenizer.(c/h)):
   -Stores data in double linked list of structs where each node holds line number, token type, token value, previous, and next:
   -'#' denotes a comment and the rest of the line will be ignored
   -Token Types:
@@ -32,31 +32,31 @@ TOKENIZER:
       ^: bitwise xor
     3: keywords - all language defined words:
       Note that keywords will be ignored if followed by alphanumeric char: break1 is not a keyword but break+ is a keyword (and then operator).
-      var: allocates memory for 64 bit variable value. No initial value supported. Adheres to scope. Ex: var varName; would allocate 64 bits of memory for varName.
-      array: allocates n number of variables contigously in memory. Adheres to scope. Must create and use pointer manip to access elements. Ex: array arrayName 5; would allocate 64*5 bits of memory for arrayName (arrayName refers the value of first element).
-      func: delcares a function in current scope. Must return a value. Ex: func funcName(param1, param2) {return 0;} would declare funcName as a valid function that takes 2 parameters.
+      var: statically allocates memory for 64 bit variable value. No initial values. Adheres to scope. Ex: var varName; for 64 bits of memory
+      array: dynamically or statically (if length is number token) allocates multiple vars contigously. Use pointers to navigate to other values. Ex: array arrayName 5; for 5*64 bits of memory
+      func: delcares a function in current scope. Must return a value. Ex: func funcName(param1, param2) {return 0;}
       return: leaves current function and returns value listed afterward.
-      while: declares a loop. Ex: while(x < 5) {while loop body} would create a while loop that will execute until x < 5 is not satisfied.
+      while: declares a loop. Ex: while(x < 5) {while loop body}
       continue: skips to next iteration in while loop.
       break: jumps out of current loop.
-      if: declares a conditional block. Ex: if(x == 5) {"if body"} will create a conditional block that only executes if condition is satisfied.
-      else: optional second part of if statement that will execute if the if statement fails. No else if construction supported. Ex: if(x != 0) {...} else {...}
+      if: declares a conditional block. Ex: if(x == 5) {if body}
+      else: optional second part of if statement that will execute if the if statement fails. Must construct elif manually. Ex: if(x != 0) {...} else {...}
     4: separators
     parenthesis: for loop, if, func, or math
     brackets: define subscope for loops, if, or funcs
     commas: seperate function arguments
     semicolon: ends a statement
 
-PARSER:
--stores ASTs in double linked list structure where each node holds sub-node type indicator, sub-node of specific type, previous, and next
--each AST node type (see parser.h for more):
-  math operation
-  var declaration,
-  var re-assignment,
-  function node,
-  while node,
-  if node
+PARSER (parser.(c/h)):
+  -stores ASTs in double linked list structure where each node holds sub-node type indicator, pointer to sub-node, previous, and next
+  -each AST node type (see parser.h for more):
+    math operation
+    var declaration,
+    var assignment,
+    
+    function node,
+    while node,
+    if node
 
-IDENTIFIER HASH TABLE:
--A hash table is used to store all of the identifers and their info when parsing to avoid string operations.
--It uses the DJB2 algorithm and has a default size of 509.
+SYMBOL TABLE:
+...
