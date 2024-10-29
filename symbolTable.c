@@ -68,7 +68,7 @@ void popScope(SymbolTable *table) {
         table->scopeCount--;
     }
 }
-bool pushEntry(SymbolTable *table, char *name, bool isVar, void* data) {
+bool pushEntry(SymbolTable *table, char *name, int numParams) {
     if (table->scopeCount == 0) { //no scope to push to 
         printf("\033[1;31mNo scope to push to in pushEntry.\033[0m\n");
         return false;
@@ -90,21 +90,15 @@ bool pushEntry(SymbolTable *table, char *name, bool isVar, void* data) {
         printf("\033[1;31mStrdup failed in pushEntry.\033[0m\n");
         return false;
     }
-    if (isVar) {
-        curScope->entries[curScope->entryCount].isVar = true;
-        curScope->entries[curScope->entryCount].data.value = *(long long*)data;
-    } else {
-        curScope->entries[curScope->entryCount].isVar = false;
-        curScope->entries[curScope->entryCount].data.numParams = *(int*)data;
-    }
+    curScope->entries[curScope->entryCount].numParams = numParams;
     curScope->entryCount++;
     return true;
 }
-Entry *lookup(SymbolTable *table, char *name, bool isVar) {
+Entry *lookup(SymbolTable *table, char *name, int numParams) {
     for (int i = table->scopeCount - 1; i >= 0; i--) {
         Scope *curScope = &table->scopes[i];
         for (int j = curScope->entryCount - 1; j >= 0; j--) {
-            if (strcmp(curScope->entries[j].name, name) == 0 && curScope->entries[j].isVar == isVar) {
+            if (strcmp(curScope->entries[j].name, name) == 0 && curScope->entries[j].numParams == numParams) {
                 return &curScope->entries[j];
             }
         }

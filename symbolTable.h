@@ -4,11 +4,7 @@
 
 typedef struct {
     char* name;
-    bool isVar; //true if variable, false if function
-    union {
-        long long value; //for variable
-        int numParams; //for function
-    } data;
+    int numParams; //-1 for vars/arrays
 } Entry;
 
 typedef struct {
@@ -26,8 +22,8 @@ typedef struct {
 SymbolTable* createTable();
 bool pushScope(SymbolTable* table);
 void popScope(SymbolTable* table);
-bool pushEntry(SymbolTable* table, char* name, bool isVar, void* data);
-Entry* lookup(SymbolTable* table, char* name, bool isVar);
+bool pushEntry(SymbolTable* table, char* name, int numParams);
+Entry* lookup(SymbolTable* table, char* name, int numParams);
 void freeTable(SymbolTable* table);
 
 #endif

@@ -5,7 +5,7 @@
 
 int main() {
         //TOKENIZE
-    FILE *file = fopen("text.txt", "r");
+    FILE *file = fopen("input.txt", "r");
     if (file == NULL) {
         printf("\033[0;31mFATAL ERROR: failed to read input file\033[0m\n");
         return -1;
@@ -26,6 +26,7 @@ int main() {
         freeTokens(tokens);
         return -3;
     }
+    
     ASTNode *AST = parse(tokens, table);
     if (AST == NULL) {
         printf("\033[0;31mFATAL ERROR: parser failed\033[0m\n");
@@ -41,5 +42,7 @@ int main() {
         //CLEANUP
     freeTokens(tokens);
     //freeTable(table);
+
+    printf("\033[0;32mSUCCESS: program ran without errors\033[0m\n");
     return 0;
 }

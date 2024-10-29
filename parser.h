@@ -13,35 +13,43 @@ typedef enum {
     NODE_MATH_OP
 } NodeType;
 typedef enum {
-                    // Special
+    //Special
     OP_NONE,        // Null operator for leaf nodes of math operations
     OP_ASSIGN,      // = (only for assignment and declaration)
-                    // Arithmetic
-    OP_ADD,         // +
-    OP_SUB,         // -
+    //Precedence 1 - parentheses (a seperator)
+    //Precedence 2 (r->l)
+    OP_BIT_NOT,     // ~
+    OP_NOT,         // !
+    OP_REF,         // &
+    OP_DEREF,       // *
+    //Precedence 3 (l->r)
     OP_MUL,         // *
     OP_DIV,         // /
     OP_MOD,         // %
-                    // Logical
-    OP_EQU,         // ==
-    OP_AND,         // &&
-    OP_OR,          // ||
+    //Precedence 4 (l->r)
+    OP_ADD,         // +
+    OP_SUB,         // -
+    //Precedence 5 (l->r)
+    OP_BIT_L,       // <<
+    OP_BIT_R,       // >>
+    //Precedence 6 (l->r)
     OP_LT,          // <
     OP_GT,          // >
     OP_LTE,         // <=
     OP_GTE,         // >=
-    OP_NOT,         // !
+    //Precedence 7 (l->r)
+    OP_EQU,         // ==
     OP_NEQ,         // !=
-                    // Bitwise
+    //Precedence 8 (l->r)
     OP_BIT_AND,     // &
-    OP_BIT_OR,      // |
+    //Precedence 9 (l->r)
     OP_BIT_XOR,     // ^
-    OP_BIT_L,       // <<
-    OP_BIT_R,       // >>
-    OP_BIT_NOT,     // ~
-                    // Pointers - these are same symbols as OP_BIT_AND and OP_MUL but in different context
-    OP_REF,         // &
-    OP_DEREF        // *
+    //Precedence 10 (l->r)
+    OP_BIT_OR,      // |
+    //Precedence 11 (l->r)
+    OP_AND,         // &&
+    //Precedence 12 (l->r)
+    OP_OR           // ||
 } OperatorType;
 typedef enum {
     VALUE_NUM,
@@ -56,14 +64,13 @@ typedef struct ASTNode {
     struct ASTNODE* left;
     struct ASTNODE* right;
 } ASTNode;
-typedef struct MathOpNode MathOpNode;
-struct MathOpNode {
+typedef struct MathOpNode {
     ValueType leftType;
     void* left;
     OperatorType op;
     ValueType rightType;
     void* right;
-};
+} MathOpNode;
 typedef struct VarDeclNode {
     char* varName;
 } VarDeclNode;
@@ -93,7 +100,6 @@ typedef struct IfNode {
     ASTNode* body;
     ASTNode* elseBody; //NULL if no else
 } IfNode;
-
 
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head);
