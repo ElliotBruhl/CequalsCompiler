@@ -50,10 +50,10 @@ TOKENIZER (in tokenizer.(c/h)):
 PARSER (parser.(c/h)):
   -stores ASTs in double linked list structure where each node holds sub-node type indicator, pointer to sub-node, previous, and next
   -each AST node type (see parser.h for more):
-    math operation
+    math operation, (order of operations (same level is left to right except ref and deref): ||, &&, |, ^, &, == !=, < <= > >=, << >>, + -, * / %, * & (ref/deref), grouping ()
     var declaration,
+    array assignment,
     var assignment,
-    
     function node,
     while node,
     if node
