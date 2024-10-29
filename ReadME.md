@@ -54,17 +54,28 @@ TOKENIZER (in tokenizer.(c/h)):
 PARSER (parser.(c/h)):
   -stores ASTs in double linked list structure where each node holds sub-node type indicator, pointer to sub-node, previous, and next
   -each AST node type (see parser.h for more):
+<<<<<<< HEAD
     math operation,
     var declaration,
     array declaration,
+=======
+    math operation, (order of operations (same level is left to right except ref and deref): ||, &&, |, ^, &, == !=, < <= > >=, << >>, + -, * / %, * & (ref/deref), grouping ()
+    var declaration,
+    array assignment,
+>>>>>>> 5fd8cfda73bf9416644045f9cd42b0606b7c1ec6
     var assignment,
     function node,
     while node,
     if node
 
+<<<<<<< HEAD
 SYMBOL TABLE (symbolTable.(c/h)):
   -keeps track of all declared functions and variable names for each scope
   -scopes can be created and freed easily
   -scopes automatically resize (double their size when full)
   -default size is 10 scopes, each with 10 spots for var/func names
   -function overloading and variable/function shadowing work, but should be avoided
+=======
+SYMBOL TABLE:
+...
+>>>>>>> 5fd8cfda73bf9416644045f9cd42b0606b7c1ec6
