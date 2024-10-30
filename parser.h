@@ -16,7 +16,7 @@ typedef enum {
     //Special
     OP_NONE,        // Null operator for leaf nodes of math operations
     OP_ASSIGN,      // = (only for assignment and declaration)
-    //Precedence 1 - parentheses (a seperator)
+    //Precedence 1 - parentheses (a seperator) -------- FIRST PRECEDENCE
     //Precedence 2 (r->l)
     OP_BIT_NOT,     // ~
     OP_NOT,         // !
@@ -48,14 +48,14 @@ typedef enum {
     OP_BIT_OR,      // |
     //Precedence 11 (l->r)
     OP_AND,         // &&
-    //Precedence 12 (l->r)
+    //Precedence 12 (l->r) ------ LAST PRECEDENCE
     OP_OR           // ||
 } OperatorType;
 typedef enum {
-    VALUE_NUM,
-    VALUE_VAR,
-    VALUE_FUNC_RET,
-    VALUE_MATH_OP
+    VALUE_NUM,      //64 bit integer
+    VALUE_VAR,      //char* varName
+    VALUE_FUNC_RET, //char* funcName
+    VALUE_MATH_OP   //MathOpNode* mathOp
 } ValueType;
 
 typedef struct ASTNode {

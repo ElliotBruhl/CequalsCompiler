@@ -58,12 +58,13 @@ int getOperatorLength(char c, char cNext) {
         case '!':
             if (cNext == '=') return 2;
         case '&':
-            if (cNext == '&') return 2;
+            if (cNext == ' ' || cNext == '&') return 2; // & followed by space is bit and or followed by & is &&, but & followed by char is ref
         case '|':
             if (cNext == '|') return 2;
+        case '*':
+            if (cNext == ' ') return 2; // * followed by space is mul, but * followed by another char is pointer deref
         case '+':
         case '-':
-        case '*':
         case '/':
         case '%':
         case '~':
