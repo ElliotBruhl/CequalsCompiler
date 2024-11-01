@@ -12,44 +12,45 @@ typedef enum {
     NODE_IF,
     NODE_MATH_OP
 } NodeType;
-typedef enum {
-    //Special
-    OP_NONE,        // Null operator for leaf nodes of math operations
-    OP_ASSIGN,      // = (only for assignment and declaration)
-    //Precedence 1 - parentheses (a seperator) -------- FIRST PRECEDENCE
-    //Precedence 2 (r->l)
-    OP_BIT_NOT,     // ~
-    OP_NOT,         // !
-    OP_REF,         // &
-    OP_DEREF,       // *
-    //Precedence 3 (l->r)
-    OP_MUL,         // *
-    OP_DIV,         // /
-    OP_MOD,         // %
-    //Precedence 4 (l->r)
-    OP_ADD,         // +
-    OP_SUB,         // -
-    //Precedence 5 (l->r)
-    OP_BIT_L,       // <<
-    OP_BIT_R,       // >>
-    //Precedence 6 (l->r)
-    OP_LT,          // <
-    OP_GT,          // >
-    OP_LTE,         // <=
-    OP_GTE,         // >=
-    //Precedence 7 (l->r)
-    OP_EQU,         // ==
-    OP_NEQ,         // !=
-    //Precedence 8 (l->r)
-    OP_BIT_AND,     // &
-    //Precedence 9 (l->r)
-    OP_BIT_XOR,     // ^
-    //Precedence 10 (l->r)
-    OP_BIT_OR,      // |
-    //Precedence 11 (l->r)
-    OP_AND,         // &&
-    //Precedence 12 (l->r) ------ LAST PRECEDENCE
-    OP_OR           // ||
+typedef enum { //divide by 4 to get precedence level
+    // Special
+    OP_ASSIGN = 0,      // = (only for assignment and declaration)
+    // Precedence 1 - parentheses (a separator) -------- FIRST PRECEDENCE
+    OP_OPEN_PAREN = 1,  // (
+    OP_CLOSE_PAREN = 2, // )
+    // Precedence 2 (r->l): 4-7
+    OP_BIT_NOT = 4,     // ~
+    OP_NOT = 5,         // !
+    OP_REF = 6,         // &
+    OP_DEREF = 7,       // *
+    // Precedence 3 (l->r): 8-11
+    OP_MUL = 8,         // *
+    OP_DIV = 9,         // /
+    OP_MOD = 10,        // %
+    // Precedence 4 (l->r): 12-15
+    OP_ADD = 12,        // +
+    OP_SUB = 13,        // -
+    // Precedence 5 (l->r): 16-19
+    OP_BIT_L = 16,      // <<
+    OP_BIT_R = 17,      // >>
+    // Precedence 6 (l->r): 20-23
+    OP_LT = 20,         // <
+    OP_GT = 21,         // >
+    OP_LTE = 22,        // <=
+    OP_GTE = 23,        // >=
+    // Precedence 7 (l->r): 24-27
+    OP_EQU = 24,        // ==
+    OP_NEQ = 25,        // !=
+    // Precedence 8 (l->r): 28-31
+    OP_BIT_AND = 28,    // &
+    // Precedence 9 (l->r): 32-35
+    OP_BIT_XOR = 32,    // ^
+    // Precedence 10 (l->r): 36-39
+    OP_BIT_OR = 36,     // |
+    // Precedence 11 (l->r): 40-43
+    OP_AND = 40,        // &&
+    // Precedence 12 (l->r): 44-47
+    OP_OR = 44          // ||
 } OperatorType;
 typedef enum {
     VALUE_NUM,      //64 bit integer

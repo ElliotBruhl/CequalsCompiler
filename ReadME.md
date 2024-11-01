@@ -3,9 +3,11 @@ GENERAL INFO:
   -output code will be in x86 assembly
     -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug (gdb test.exe)
 
-  -language generally follows C syntax as defined below
-  -all variables are signed 64 bit
-  -all pointer arithmetic is in 64 bit increments
+  -language generally follows C syntax except for:
+    -spaces matter in some math situations:
+      -a*b (* is deref) VS a* b or a * b (* is mult)
+      -a&b (& is ref) VS a& b or a & b (& is bit and)
+    -no data types; all variables are interpreted as signed 64 bit
 
 EXIT CODES (main.c):
   0 - sucess
@@ -54,28 +56,17 @@ TOKENIZER (in tokenizer.(c/h)):
 PARSER (parser.(c/h)):
   -stores ASTs in double linked list structure where each node holds sub-node type indicator, pointer to sub-node, previous, and next
   -each AST node type (see parser.h for more):
-<<<<<<< HEAD
     math operation,
     var declaration,
     array declaration,
-=======
-    math operation, (order of operations (same level is left to right except ref and deref): ||, &&, |, ^, &, == !=, < <= > >=, << >>, + -, * / %, * & (ref/deref), grouping ()
-    var declaration,
-    array assignment,
->>>>>>> 5fd8cfda73bf9416644045f9cd42b0606b7c1ec6
     var assignment,
     function node,
     while node,
     if node
 
-<<<<<<< HEAD
 SYMBOL TABLE (symbolTable.(c/h)):
   -keeps track of all declared functions and variable names for each scope
   -scopes can be created and freed easily
   -scopes automatically resize (double their size when full)
   -default size is 10 scopes, each with 10 spots for var/func names
   -function overloading and variable/function shadowing work, but should be avoided
-=======
-SYMBOL TABLE:
-...
->>>>>>> 5fd8cfda73bf9416644045f9cd42b0606b7c1ec6
