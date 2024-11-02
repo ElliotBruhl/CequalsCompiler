@@ -75,8 +75,8 @@ int getOperatorLength(char c, char cNext) {
     }
 }
 int getKeywordLength(char* c) {
-    char* keywords[] = {"var", "array", "func", "return", "while", "continue", "break", "if", "else"};
-    const int KEYWORDS_LEN = 9;
+    char* keywords[] = {"var", "func", "return", "while", "continue", "break", "if", "else"};
+    const int KEYWORDS_LEN = 8;
 
     for (int i = 0; i < KEYWORDS_LEN; i++) {
         int j = 0;

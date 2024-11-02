@@ -13,8 +13,7 @@ typedef enum {
     NODE_MATH_OP
 } NodeType;
 typedef enum { //divide by 4 to get precedence level
-    // Special
-    OP_ASSIGN = 0,      // = (only for assignment and declaration)
+    NULL_OP = 0,        // error operator
     // Precedence 1 - parentheses (a separator) -------- FIRST PRECEDENCE
     OP_OPEN_PAREN = 1,  // (
     OP_CLOSE_PAREN = 2, // )
@@ -53,32 +52,30 @@ typedef enum { //divide by 4 to get precedence level
     OP_OR = 44          // ||
 } OperatorType;
 typedef enum {
+    VALUE_OP,       //OperatorType op
     VALUE_NUM,      //64 bit integer
     VALUE_VAR,      //char* varName
     VALUE_FUNC_RET, //char* funcName
     VALUE_MATH_OP   //MathOpNode* mathOp
 } ValueType;
-
 typedef struct ASTNode {
     NodeType nodeType;
     void* subNode;
-    struct ASTNODE* left;
-    struct ASTNODE* right;
+    struct ASTNODE* next;
+    struct ASTNODE* prev;
 } ASTNode;
+typedef struct ValueNode {
+    ValueType valueType;
+    void* value;
+} ValueNode;
 typedef struct MathOpNode {
-    ValueType leftType;
-    void* left;
+    ValueNode* left;
     OperatorType op;
-    ValueType rightType;
-    void* right;
+    ValueNode* right;
 } MathOpNode;
 typedef struct VarDeclNode {
     char* varName;
 } VarDeclNode;
-typedef struct ArrayDeclNode {
-    char* arrayName;
-    int arraySize; //number of 64 bit chunks to allocate
-} ArrayDeclNode;
 typedef struct VarAssignNode {
     char* varName;
     MathOpNode* mathOp;

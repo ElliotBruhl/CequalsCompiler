@@ -37,15 +37,14 @@ TOKENIZER (in tokenizer.(c/h)):
       ^: bitwise xor
     3: keywords - all language defined words:
       Note that keywords will be ignored if followed by alphanumeric char: break1 is not a keyword but break+ is a keyword (and then operator).
-      var: allocates memory for 64 bit variable value. No initial values. Adheres to scope. Ex: var varName; for 64 bits of memory
-      array: allocates multiple vars contigously. Ex: array arrayName 5; for 5*64 bits of memory and arrayName as pointer to element 0
-      func: delcares a function in current scope. Must return a value. Ex: func funcName(param1, param2) {return 0;}
+      var: allocates memory for 64 bit variable value. No initial values. Adheres to scope.
+      func: delcares a function in current scope. Must return a value.
       return: leaves current function and returns value listed afterward.
-      while: declares a loop. Ex: while(x < 5) {while loop body}
+      while: declares a loop.
       continue: skips to next iteration in while loop.
       break: jumps out of current loop.
-      if: declares a conditional block. Ex: if(x == 5) {if body}
-      else: optional second part of if statement that will execute if the if statement fails. Must construct elif manually. Ex: if(x != 0) {...} else {...}
+      if: declares a conditional block.
+      else: optional second part of if statement that will execute if the if statement fails. Must construct else if manually.
     4: separators
     parenthesis: for loop, if, func, or math
     curly braces: define subscope for loops, if, or funcs
