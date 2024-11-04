@@ -10,6 +10,7 @@ int main() {
         printf("\033[0;31mFATAL ERROR: failed to read input file\033[0m\n");
         return -1;
     }
+
         //TOKENIZE
     Token *tokens = tokenizer(file);
     if (tokens == NULL) {
@@ -17,6 +18,8 @@ int main() {
         freeTokens(tokens);
         return -2;
     }
+    printTokens(tokens); //for debugging (temp)
+
         //CREATE SYMBOL TABLE
     SymbolTable *table = createTable();
     if (table == NULL) {
@@ -24,16 +27,10 @@ int main() {
         freeTokens(tokens);
         return -3;
     }
-    /*
-    ASTNode *AST = parse(tokens, table);
-    if (AST == NULL) {
-        printf("\033[0;31mFATAL ERROR: parser failed\033[0m\n");
-        freeTokens(tokens);
-        freeTable(table);
-        return -4;
-    }
-    //printAST(AST);
-    */
+    
+            //PARSE
+    parseMathOp(tokens, table, 5); //still has segfaults --- needs more testing
+
         //CLEANUP
     freeTokens(tokens);
     freeTable(table);

@@ -1,6 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 #include "tokenizer.h"
+#include "symbolTable.h"
 #include <stdbool.h>
 
 typedef enum {
@@ -102,5 +103,6 @@ typedef struct IfNode {
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head);
 ASTNode* parseTokens(Token* head);
+MathOpNode* parseMathOp(Token* head, SymbolTable* table, int length);
 
 #endif

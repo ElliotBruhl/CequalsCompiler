@@ -1,5 +1,4 @@
 #include "parser.h"
-#include "symbolTable.h"
 #include <stdlib.h>
 
 void freeASTNodes(ASTNode* head) {
@@ -8,8 +7,50 @@ void freeASTNodes(ASTNode* head) {
 void printASTs(ASTNode* head) {
     //...
 }
-int numParams(Token* head) { //takes in first paren and goes until matching end paren
-    if (head->nextToken->value == ')') return 0;
+
+//HELPER FUNCTIONS FOR BUILDING POSTFIX EXPRESSION
+typedef struct queueOrStackNode {
+    ValueNode* value;
+    struct queueOrStackNode* next;
+} queueOrStackNode;
+void printPostfix(queueOrStackNode* head) {
+    printf("Postfix: ");
+    if (head == NULL) return;
+    queueOrStackNode* current = head;
+    while (current != NULL) {
+        switch (current->value->valueType) {
+            case VALUE_OP:
+                printf("OP: %d ", (OperatorType*)current->value->value); //why does this segfault?
+                break;
+            case VALUE_NUM:
+                printf("NUM: %lld ", (long long)current->value->value);
+                break;
+            case VALUE_VAR:
+                printf("VAR: %s ", (char*)current->value->value);
+                break;
+            case VALUE_FUNC_RET:
+                printf("FUNC: %s ", (char*)current->value->value);
+                break;
+            default:
+                printf("Unknown value type in postfix print.\n");
+                return;
+        }
+        current = current->next;
+    }
+    printf("\n");
+}
+void freePostfix(queueOrStackNode* head) {
+    if (head == NULL) return;
+    queueOrStackNode* current = head;
+    while (current != NULL) {
+        queueOrStackNode* next = current->next;
+        free(current->value);
+        free(current);
+        current = next;
+    }
+}
+int numParams(Token* head) { //takes in first paren and goes until matching end paren. -2 is error state
+    if (head->nextToken->value[0] == ')') return 0;
     int parens = 1;
     int params = 1;
     for (Token* current = head->nextToken; current != NULL && parens > 0; current = current->nextToken) {
@@ -21,15 +62,15 @@ int numParams(Token* head) { //takes in first paren and goes until matching end 
                 parens--;
                 break;
             case ',':
-                params++;
+                if (parens == 1) params++;
                 break;
             case ';':
-                return -1; //so invalid syntax doesnt result in read until end of file
+                return -2; //so invalid syntax doesnt result in read until end of file
         }
     }
-    return params;
+    return parens == 0 ? params : -2;
 }
-OperatorType getOperatorType(Token* token, SymbolTable* table) { //-3 for func, -2 for var, -1 for number, 0 for error, other for valid operator (do op/4 for precedence)
+OperatorType getOperatorType(Token* token, SymbolTable* table) { //-3 for func, -2 for var, -1 for number, 0 for error, positive for valid operator (do op/4 for precedence)
     switch (token->tokenType) {
         case 0: //var or func
             if (token->nextToken->value[0] == '(')
@@ -80,11 +121,7 @@ OperatorType getOperatorType(Token* token, SymbolTable* table) { //-3 for func, 
             return 0; //unknown token (error)
     }
 }
-typedef struct queueOrStackNode {
-    ValueType* value;
-    struct queueOrStackNode* next;
-} queueOrStackNode;
-queueOrStackNode* enqueue(queueOrStackNode* back, ValueType* value) { //returns new back
+queueOrStackNode* enqueue(queueOrStackNode* back, ValueNode* value) { //returns new back
     queueOrStackNode* newNode = (queueOrStackNode*)malloc(sizeof(queueOrStackNode));
     if (newNode == NULL) {
         printf("\033[1;31mMalloc error in enqueue.\033[0m\n");
@@ -92,7 +129,7 @@ queueOrStackNode* enqueue(queueOrStackNode* back, ValueType* value) { //returns 
     }
     newNode->value = value;
     newNode->next = NULL;
-    back->next = newNode;
+    if (back != NULL) back->next = newNode;
     return newNode;
 }
 queueOrStackNode* dequeue(queueOrStackNode* front) { //returns new front
@@ -103,7 +140,7 @@ queueOrStackNode* dequeue(queueOrStackNode* front) { //returns new front
     free(front);
     return newFront;
 }
-queueOrStackNode* push(queueOrStackNode* front, ValueType* value) { //return new front (of stack)
+queueOrStackNode* push(queueOrStackNode* front, ValueNode* value) { //return new front (of stack)
     queueOrStackNode* newNode = (queueOrStackNode*)malloc(sizeof(queueOrStackNode));
     if (newNode == NULL) {
         printf("\033[1;31mMalloc error in push.\033[0m\n");
@@ -113,70 +150,185 @@ queueOrStackNode* push(queueOrStackNode* front, ValueType* value) { //return new
     newNode->next = front;
     return newNode;
 }
-
-Token* buildPostfix(Token* head, Token* endTok, SymbolTable* table) { //takes in math expression (terminated correctly with end token)
-    if (head == NULL || endTok == NULL) return NULL;
+queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) { //takes in math expression (terminated correctly with end token)
+    if (head == NULL || endTok == NULL) {
+        printf("\033[1;31mInvalid math operation.\033[0m\n");
+        return NULL;
+    }
     queueOrStackNode* outQueueFront = NULL; //queue here
     queueOrStackNode* outQueueBack = NULL; //queue here
     queueOrStackNode* opStack = NULL; //stack here
 
     for (Token* current = head; current != endTok; current = current->nextToken) {
         OperatorType opType = getOperatorType(current, table);
+        printf("opType %d\n", opType);
         if (opType == 0) {
             printf("\033[1;31mInvalid token or undefined identifier in math operation. Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
             return NULL;
         }
-        if (opType == -1) { //number
-            //add to output queue
+        if (opType == -1) { //number -- add to ouput queue
+            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+            if (newValNode == NULL) {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            newValNode->valueType = VALUE_NUM;
+            newValNode->value = (void*)atoll(current->value);
+            outQueueBack = enqueue(outQueueBack, newValNode);
+            if (outQueueBack == NULL) {
+                printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                return NULL;
+            }
+            if (outQueueFront == NULL) outQueueFront = outQueueBack;
         }
-        else if (opType == -2) {//var
-            //add to output queue
+        else if (opType == -2) {//var -- add to output queue
+            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+            if (newValNode == NULL) {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            newValNode->valueType = VALUE_VAR;
+            newValNode->value = (void*)current->value;
+            outQueueBack = enqueue(outQueueBack, newValNode);
+            if (outQueueBack == NULL) {
+                printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                return NULL;
+            }
+            if (outQueueFront == NULL) outQueueFront = outQueueBack;
         }
-        else if (opType == -3) { //func
-            //add to output queue
+        else if (opType == -3) { //func -- add to output queue and skip to end of func call
+            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+            if (newValNode == NULL) {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            newValNode->valueType = VALUE_FUNC_RET;
+            newValNode->value = (void*)current->value;
+            outQueueBack = enqueue(outQueueBack, newValNode);
+            if (outQueueBack == NULL) {
+                printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                return NULL;
+            }
+            if (outQueueFront == NULL) outQueueFront = outQueueBack;
+            int parens = 1;
+            for (current = current->nextToken->nextToken; current != endTok && parens > 0; current = current->nextToken) {
+                if (current->value[0] == '(') parens++;
+                if (current->value[0] == ')') parens--;
+            }
         }
-        else if (opType == OP_OPEN_PAREN) {
-            //push onto stack
+        else if (opType == OP_OPEN_PAREN) { //push onto stack
+            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+            if (newValNode == NULL) {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            newValNode->valueType = VALUE_OP;
+            newValNode->value = (void*)opType;
+            opStack = push(opStack, newValNode);
+            if (opStack == NULL) {
+                printf("\033[1;31mPush failed.\033[0m\n");
+                return NULL;
+            }
         }
-        else if (opType == OP_CLOSE_PAREN) {
-            /*
-            - While the token at the top of `operatorStack` is not a left parenthesis:
-            - Pop operators from `operatorStack` to `outputQueue`.
-            - Pop the left parenthesis `(` from `operatorStack` (do not add it to `outputQueue`).
-            */
+        else if (opType == OP_CLOSE_PAREN) { //pop stack until open paren
+            if (opStack == NULL) {
+                printf("\033[1;31mMismatched parentheses in math operation. Line %d.\033[0m\n", current->lineNum);
+                return NULL;
+            }
+            while (*(OperatorType*)opStack->value->value != OP_OPEN_PAREN) {
+                outQueueBack = enqueue(outQueueBack, opStack->value);
+                if (outQueueBack == NULL) {
+                    printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                    return NULL;
+                }
+                if (outQueueFront == NULL) outQueueFront = outQueueBack;
+                opStack = dequeue(opStack);
+                if (opStack == NULL) {
+                    printf("\033[1;31mMismatched parentheses in math operation. Line %d.\033[0m\n", current->lineNum);
+                    return NULL;
+                }
+            }
+            opStack = dequeue(opStack); //pop open paren
         }
-        else if (opType/4 == 1) { //unary op
-            /*
-            - While `operatorStack` is not empty and:
-            - The token at the top of `operatorStack` has higher precedence, or
-            - The token at the top has equal precedence and is left associative,
-            - Pop operators from `operatorStack` to `outputQueue`.
-            - Push the current unary operator onto `operatorStack`.
-            */
+        else if (opType/4 == 1) { //unary op (r->l) -- push onto stack (in correct order)
+            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 > 1) {
+                outQueueBack = enqueue(outQueueBack, opStack->value);
+                if (outQueueBack == NULL) {
+                    printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                    return NULL;
+                }
+                if (outQueueFront == NULL) outQueueFront = outQueueBack;
+                opStack = dequeue(opStack);
+            }
+            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+            if (newValNode == NULL) {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            newValNode->valueType = VALUE_OP;
+            newValNode->value = (void*)opType;
+            opStack = push(opStack, newValNode);
+            if (opStack == NULL) {
+                printf("\033[1;31mPush failed.\033[0m\n");
+                return NULL;
+            }
         }
-        else { //binary op
-            /*
-            - While `operatorStack` is not empty and:
-            - The token at the top of `operatorStack` has higher precedence, or
-            - The token at the top has equal precedence and is left associative,
-            - Pop operators from `operatorStack` to `outputQueue`.
-            - Push the current binary operator onto `operatorStack`.
-            */
+        else { //binary op (l->r) -- push onto stack (in correct order)
+            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 >= opType/4) {
+                outQueueBack = enqueue(outQueueBack, opStack->value);
+                if (outQueueBack == NULL) {
+                    printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                    return NULL;
+                }
+                if (outQueueFront == NULL) outQueueFront = outQueueBack;
+                opStack = dequeue(opStack);
+            }
+            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+            if (newValNode == NULL) {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            newValNode->valueType = VALUE_OP;
+            newValNode->value = (void*)opType;
+            opStack = push(opStack, newValNode);
+            if (opStack == NULL) {
+                printf("\033[1;31mPush failed.\033[0m\n");
+                return NULL;
+            }
         }
     }
-    /*
-    After all tokens have been read:
-    - While `operatorStack` is not empty:
-    - Pop operators from `operatorStack` to `outputQueue`.
-    */
+    while (opStack != NULL) {
+        outQueueBack = enqueue(outQueueBack, opStack->value);
+        if (outQueueBack == NULL) {
+            printf("\033[1;31mEnqueue Failed.\033[0m\n");
+            return NULL;
+        }
+        opStack = dequeue(opStack);
+    }
+    free(opStack);
 
     return outQueueFront; //return head of postfix expression
 }
 
 MathOpNode* parseMathOp(Token* head, SymbolTable* table, int length) {
-    //...
+    if (head == NULL) return NULL;
+    Token* current = head;
+    for (int i = 0; i < length; i++) {
+        if (current == NULL) {
+            printf("\033[1;31mInvalid math operation length.\033[0m\n");
+            return NULL;
+        }
+        current = current->nextToken;
+    }
+    queueOrStackNode* postfix = buildPostfix(head, current, table);
+    if (postfix == NULL) {
+        printf("\033[1;31mError building postfix expression.\033[0m\n");
+        return NULL;
+    }
+    printPostfix(postfix);
+    freePostfix(postfix);
+    return NULL;
 }
-
 ASTNode* parseTokens(Token* head) {
     //...
 }

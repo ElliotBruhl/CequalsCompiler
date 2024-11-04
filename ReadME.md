@@ -2,7 +2,7 @@ GENERAL INFO:
   -compiler is written in C
   -output code will be in x86 assembly
     -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug (gdb test.exe)
-    -Not very cross-platform friendly, but I'm not going through too much effort to fix it
+    -Not very cross-platform friendly, but I'm not going to fix it
   -language generally follows C syntax and specific rules defined below
   -all variables are signed 64 bit
   -all pointer arithmetic is in 64 bit increments
