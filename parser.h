@@ -13,9 +13,9 @@ typedef enum {
     NODE_IF,
     NODE_MATH_OP
 } NodeType;
-typedef enum { //divide by 4 to get precedence level
+typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (oopsies)
     NULL_OP = 0,        // error operator
-    // Precedence 1 - parentheses (a separator) -------- FIRST PRECEDENCE
+    // Precedence 1 - parentheses (a separator)
     OP_OPEN_PAREN = 1,  // (
     OP_CLOSE_PAREN = 2, // )
     // Precedence 2 (r->l): 4-7
@@ -54,7 +54,7 @@ typedef enum { //divide by 4 to get precedence level
 } OperatorType;
 typedef enum {
     VALUE_OP,       //OperatorType op
-    VALUE_NUM,      //64 bit integer
+    VALUE_NUM,      //long long (64 bits)
     VALUE_VAR,      //char* varName
     VALUE_FUNC_RET, //char* funcName
     VALUE_MATH_OP   //MathOpNode* mathOp
@@ -67,7 +67,7 @@ typedef struct ASTNode {
 } ASTNode;
 typedef struct ValueNode {
     ValueType valueType;
-    void* value;
+    void* value; //should be a unique pointer to avoid double free from tokens
 } ValueNode;
 typedef struct MathOpNode {
     ValueNode* left;

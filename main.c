@@ -29,7 +29,7 @@ int main() {
     }
     
             //PARSE
-    parseMathOp(tokens, table, 5); //still has segfaults --- needs more testing
+    parseMathOp(tokens, table, 7);
 
         //CLEANUP
     freeTokens(tokens);

@@ -1,5 +1,6 @@
 #include "parser.h"
 #include <stdlib.h>
+#include <string.h>
 
 void freeASTNodes(ASTNode* head) {
     //...
@@ -20,16 +21,16 @@ void printPostfix(queueOrStackNode* head) {
     while (current != NULL) {
         switch (current->value->valueType) {
             case VALUE_OP:
-                printf("OP: %d ", (OperatorType*)current->value->value); //why does this segfault?
+                printf("OP: %d ", *(OperatorType*)current->value->value);
                 break;
             case VALUE_NUM:
-                printf("NUM: %lld ", (long long)current->value->value);
+                printf("NUM: %lld ", *(long long*)current->value->value);
                 break;
             case VALUE_VAR:
-                printf("VAR: %s ", (char*)current->value->value);
+                printf("VAR: %s ", *(char*)current->value->value);
                 break;
             case VALUE_FUNC_RET:
-                printf("FUNC: %s ", (char*)current->value->value);
+                printf("FUNC: %s ", *(char*)current->value->value);
                 break;
             default:
                 printf("Unknown value type in postfix print.\n");
@@ -155,8 +156,8 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
         printf("\033[1;31mInvalid math operation.\033[0m\n");
         return NULL;
     }
-    queueOrStackNode* outQueueFront = NULL; //queue here
-    queueOrStackNode* outQueueBack = NULL; //queue here
+    queueOrStackNode* outQ = NULL; //queue here
+    queueOrStackNode* outQBack = NULL; //queue here
     queueOrStackNode* opStack = NULL; //stack here
 
     for (Token* current = head; current != endTok; current = current->nextToken) {
@@ -173,13 +174,20 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 return NULL;
             }
             newValNode->valueType = VALUE_NUM;
-            newValNode->value = (void*)atoll(current->value);
-            outQueueBack = enqueue(outQueueBack, newValNode);
-            if (outQueueBack == NULL) {
+            newValNode->value = malloc(sizeof(long long));
+            if (newValNode->value != NULL) {
+                *(long long*)newValNode->value = atoll(current->value);
+            }
+            else {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            outQBack = enqueue(outQBack, newValNode);
+            if (outQBack == NULL) {
                 printf("\033[1;31mEnqueue Failed.\033[0m\n");
                 return NULL;
             }
-            if (outQueueFront == NULL) outQueueFront = outQueueBack;
+            if (outQ == NULL) outQ = outQBack;
         }
         else if (opType == -2) {//var -- add to output queue
             ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
@@ -188,13 +196,20 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 return NULL;
             }
             newValNode->valueType = VALUE_VAR;
-            newValNode->value = (void*)current->value;
-            outQueueBack = enqueue(outQueueBack, newValNode);
-            if (outQueueBack == NULL) {
+            newValNode->value = malloc(strlen(current->value) + 1);
+            if (newValNode->value != NULL) {
+                strcpy((char*)newValNode->value, current->value);
+            }
+            else {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            outQBack = enqueue(outQBack, newValNode);
+            if (outQBack == NULL) {
                 printf("\033[1;31mEnqueue Failed.\033[0m\n");
                 return NULL;
             }
-            if (outQueueFront == NULL) outQueueFront = outQueueBack;
+            if (outQ == NULL) outQ = outQBack;
         }
         else if (opType == -3) { //func -- add to output queue and skip to end of func call
             ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
@@ -203,13 +218,20 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 return NULL;
             }
             newValNode->valueType = VALUE_FUNC_RET;
-            newValNode->value = (void*)current->value;
-            outQueueBack = enqueue(outQueueBack, newValNode);
-            if (outQueueBack == NULL) {
+            newValNode->value = malloc(strlen(current->value) + 1);
+            if (newValNode->value != NULL) {
+                strcpy((char*)newValNode->value, current->value);
+            }
+            else {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            outQBack = enqueue(outQBack, newValNode);
+            if (outQBack == NULL) {
                 printf("\033[1;31mEnqueue Failed.\033[0m\n");
                 return NULL;
             }
-            if (outQueueFront == NULL) outQueueFront = outQueueBack;
+            if (outQ == NULL) outQ = outQBack;
             int parens = 1;
             for (current = current->nextToken->nextToken; current != endTok && parens > 0; current = current->nextToken) {
                 if (current->value[0] == '(') parens++;
@@ -223,7 +245,14 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 return NULL;
             }
             newValNode->valueType = VALUE_OP;
-            newValNode->value = (void*)opType;
+            newValNode->value = malloc(sizeof(OperatorType));
+            if (newValNode->value != NULL) {
+                *(OperatorType*)newValNode->value = opType;
+            }
+            else {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
             opStack = push(opStack, newValNode);
             if (opStack == NULL) {
                 printf("\033[1;31mPush failed.\033[0m\n");
@@ -236,12 +265,12 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 return NULL;
             }
             while (*(OperatorType*)opStack->value->value != OP_OPEN_PAREN) {
-                outQueueBack = enqueue(outQueueBack, opStack->value);
-                if (outQueueBack == NULL) {
+                outQBack = enqueue(outQBack, opStack->value);
+                if (outQBack == NULL) {
                     printf("\033[1;31mEnqueue Failed.\033[0m\n");
                     return NULL;
                 }
-                if (outQueueFront == NULL) outQueueFront = outQueueBack;
+                if (outQ == NULL) outQ = outQBack;
                 opStack = dequeue(opStack);
                 if (opStack == NULL) {
                     printf("\033[1;31mMismatched parentheses in math operation. Line %d.\033[0m\n", current->lineNum);
@@ -251,13 +280,13 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
             opStack = dequeue(opStack); //pop open paren
         }
         else if (opType/4 == 1) { //unary op (r->l) -- push onto stack (in correct order)
-            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 > 1) {
-                outQueueBack = enqueue(outQueueBack, opStack->value);
-                if (outQueueBack == NULL) {
+            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 < opType/4) {
+                outQBack = enqueue(outQBack, opStack->value);
+                if (outQBack == NULL) {
                     printf("\033[1;31mEnqueue Failed.\033[0m\n");
                     return NULL;
                 }
-                if (outQueueFront == NULL) outQueueFront = outQueueBack;
+                if (outQ == NULL) outQ = outQBack;
                 opStack = dequeue(opStack);
             }
             ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
@@ -266,7 +295,14 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 return NULL;
             }
             newValNode->valueType = VALUE_OP;
-            newValNode->value = (void*)opType;
+            newValNode->value = malloc(sizeof(OperatorType));
+            if (newValNode->value != NULL) {
+                *(OperatorType*)newValNode->value = opType;
+            }
+            else {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
             opStack = push(opStack, newValNode);
             if (opStack == NULL) {
                 printf("\033[1;31mPush failed.\033[0m\n");
@@ -274,13 +310,13 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
             }
         }
         else { //binary op (l->r) -- push onto stack (in correct order)
-            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 >= opType/4) {
-                outQueueBack = enqueue(outQueueBack, opStack->value);
-                if (outQueueBack == NULL) {
+            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 < opType/4) {
+                outQBack = enqueue(outQBack, opStack->value);
+                if (outQBack == NULL) {
                     printf("\033[1;31mEnqueue Failed.\033[0m\n");
                     return NULL;
                 }
-                if (outQueueFront == NULL) outQueueFront = outQueueBack;
+                if (outQ == NULL) outQ = outQBack;
                 opStack = dequeue(opStack);
             }
             ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
@@ -289,7 +325,14 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 return NULL;
             }
             newValNode->valueType = VALUE_OP;
-            newValNode->value = (void*)opType;
+            newValNode->value = malloc(sizeof(OperatorType));
+            if (newValNode->value != NULL) {
+                *(OperatorType*)newValNode->value = opType;
+            }
+            else {
+                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                return NULL;
+            }
             opStack = push(opStack, newValNode);
             if (opStack == NULL) {
                 printf("\033[1;31mPush failed.\033[0m\n");
@@ -298,8 +341,8 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
         }
     }
     while (opStack != NULL) {
-        outQueueBack = enqueue(outQueueBack, opStack->value);
-        if (outQueueBack == NULL) {
+        outQBack = enqueue(outQBack, opStack->value);
+        if (outQBack == NULL) {
             printf("\033[1;31mEnqueue Failed.\033[0m\n");
             return NULL;
         }
@@ -307,7 +350,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
     }
     free(opStack);
 
-    return outQueueFront; //return head of postfix expression
+    return outQ; //return head of postfix expression
 }
 
 MathOpNode* parseMathOp(Token* head, SymbolTable* table, int length) {
@@ -320,7 +363,7 @@ MathOpNode* parseMathOp(Token* head, SymbolTable* table, int length) {
         }
         current = current->nextToken;
     }
-    queueOrStackNode* postfix = buildPostfix(head, current, table);
+    queueOrStackNode* postfix = buildPostfix(head, current, table); //should be no reference to a token or token value in output (deep copied)
     if (postfix == NULL) {
         printf("\033[1;31mError building postfix expression.\033[0m\n");
         return NULL;
