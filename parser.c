@@ -162,7 +162,6 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
 
     for (Token* current = head; current != endTok; current = current->nextToken) {
         OperatorType opType = getOperatorType(current, table);
-        printf("opType %d\n", opType);
         if (opType == 0) {
             printf("\033[1;31mInvalid token or undefined identifier in math operation. Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
             return NULL;
@@ -280,7 +279,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
             opStack = dequeue(opStack); //pop open paren
         }
         else if (opType/4 == 1) { //unary op (r->l) -- push onto stack (in correct order)
-            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 < opType/4) {
+            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 != 0 && *(OperatorType*)opStack->value->value/4 < opType/4) {
                 outQBack = enqueue(outQBack, opStack->value);
                 if (outQBack == NULL) {
                     printf("\033[1;31mEnqueue Failed.\033[0m\n");
@@ -310,7 +309,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
             }
         }
         else { //binary op (l->r) -- push onto stack (in correct order)
-            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 < opType/4) {
+            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 != 0 && *(OperatorType*)opStack->value->value/4 <= opType/4) {
                 outQBack = enqueue(outQBack, opStack->value);
                 if (outQBack == NULL) {
                     printf("\033[1;31mEnqueue Failed.\033[0m\n");

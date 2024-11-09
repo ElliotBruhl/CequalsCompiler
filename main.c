@@ -29,7 +29,22 @@ int main() {
     }
     
             //PARSE
-    parseMathOp(tokens, table, 7);
+    //ADD ERRORS FOR INVALID MATH OPERATIONS (they mostly pass now)
+    //for test suites
+    int i = 0;
+    int j = 1;
+    Token* opStart = tokens;
+    for (Token *current = tokens; current != NULL; current = current->nextToken) {
+        if (current->value[0] == ';') {
+            printf("Parsing test case %d\n", j++);
+            parseMathOp(opStart, table, i);
+            opStart = current->nextToken;
+            i = 0;
+        }
+        else {
+            i++;
+        }
+    }
 
         //CLEANUP
     freeTokens(tokens);
