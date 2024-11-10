@@ -1,12 +1,12 @@
 GENERAL INFO:
   -compiler is written in C
-  -output code will be in x86 assembly
-    -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug (gdb test.exe)
-    -Not very cross-platform friendly, but I'm not going to fix it
-  -language generally follows C syntax and specific rules defined below
-  -all variables are signed 64 bit
-  -all pointer arithmetic is in 64 bit increments
-  -unary -, +, &, *, ~, and ! should be followed immediately with their operand
+  -output code will be in x86 assembly and probably not very cross-platform friendly
+    -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug
+  -language generally follows C syntax
+    -all variables are signed 64 bit
+    -all pointer arithmetic is in 64 bit increments
+    -unary -, +, &, *, ~, and ! should be followed immediately with their operand
+    -https://en.cppreference.com/w/c/language/operator_precedence defines order of operations (not all are included however)
 
 EXIT CODES (main.c):
   0 - sucess
@@ -20,7 +20,7 @@ TOKENIZER (in tokenizer.(c/h)):
   -'#' denotes a comment and the rest of the line will be ignored
   -Token Types:
     0: identifiers - all alphanumeric strings, except keywords, that begin with a letter and continue until non-alphanumeric char encountered.
-    1: numbers - positive or negative numbers. Positive or negative signs must immediately precede a number (no whitespace between) if present. (no sign defaults to positive).
+    1: numbers - positive or negative numbers. Positive or negative signs must immediately precede a number if present. over/underflow are undefined behavior.
     2: operators - all symbols included in language:
       +: add
       -: subtract
@@ -53,8 +53,8 @@ TOKENIZER (in tokenizer.(c/h)):
 
 PARSER (parser.(c/h)):
   -stores ASTs in double linked list structure where each node holds sub-node type indicator, pointer to sub-node, previous, and next
-  -each AST node type (see parser.h for more):
-    math operation,
+  -each AST node type:
+    math operation: main parser determines spot for a value, parseValue determines type of expression (simple v complex), isValidMathOp checks for (bad tokens, bad parenthesis, undefined operands, and bad length), buildPostfix converts to postfix notation, parseMathOp then takes postfix output and turns into an AST.
     var declaration,
     array declaration,
     var assignment,

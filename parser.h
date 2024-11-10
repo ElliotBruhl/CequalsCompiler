@@ -53,11 +53,11 @@ typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (
     OP_OR = 44          // ||
 } OperatorType;
 typedef enum {
-    VALUE_OP,       //OperatorType op
-    VALUE_NUM,      //long long (64 bits)
-    VALUE_VAR,      //char* varName
-    VALUE_FUNC_RET, //char* funcName
-    VALUE_MATH_OP   //MathOpNode* mathOp
+    VALUE_OP,       //OperatorType
+    VALUE_NUM,      //long long
+    VALUE_VAR,      //char*
+    VALUE_FUNC_RET, //FuncCallNode*
+    VALUE_MATH_OP   //MathOpNode*
 } ValueType;
 typedef struct ASTNode {
     NodeType nodeType;
@@ -65,6 +65,11 @@ typedef struct ASTNode {
     struct ASTNODE* next;
     struct ASTNODE* prev;
 } ASTNode;
+typedef struct FuncCallNode {
+    char* funcName;
+    int argCount;
+    ValueNode** args;
+} FuncCallNode;
 typedef struct ValueNode {
     ValueType valueType;
     void* value; //should be a unique pointer to avoid double free from tokens
@@ -103,6 +108,6 @@ typedef struct IfNode {
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head);
 ASTNode* parseTokens(Token* head);
-MathOpNode* parseMathOp(Token* head, SymbolTable* table, int length);
+MathOpNode* parseMathOp(Token* head, Token* endTok, SymbolTable* table);
 
 #endif

@@ -9,7 +9,7 @@ void printASTs(ASTNode* head) {
     //...
 }
 
-//HELPER FUNCTIONS FOR BUILDING POSTFIX EXPRESSION
+//PARSING MATH OPERATIONS
 typedef struct queueOrStackNode {
     ValueNode* value;
     struct queueOrStackNode* next;
@@ -45,8 +45,9 @@ void freePostfix(queueOrStackNode* head) {
     queueOrStackNode* current = head;
     while (current != NULL) {
         queueOrStackNode* next = current->next;
-        free(current->value);
-        free(current);
+        free(current->value->value); //void*
+        free(current->value); //ValueNode*
+        free(current); //queueOrStackNode*
         current = next;
     }
 }
@@ -216,10 +217,21 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
                 printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
                 return NULL;
             }
+            int params = numParams(current->nextToken);
             newValNode->valueType = VALUE_FUNC_RET;
-            newValNode->value = malloc(strlen(current->value) + 1);
+            newValNode->value = (FuncCallNode*)malloc(sizeof(FuncCallNode));
             if (newValNode->value != NULL) {
-                strcpy((char*)newValNode->value, current->value);
+                strcpy((char*)((FuncCallNode*)newValNode->value)->funcName, current->value);
+                ((FuncCallNode*)newValNode->value)->argCount = params;
+                ((FuncCallNode*)newValNode->value)->args = (ValueNode**)malloc(params * sizeof(ValueNode*));
+                if (((FuncCallNode*)newValNode->value)->args != NULL) { //TODO ------------------------------------------ parse args
+                    printf("\033[1;31mUNIMPLEMENTED.(func arg parsing).\033[0m\n");
+                    return NULL;
+                }
+                else {
+                    printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
             }
             else {
                 printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
@@ -232,7 +244,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
             }
             if (outQ == NULL) outQ = outQBack;
             int parens = 1;
-            for (current = current->nextToken->nextToken; current != endTok && parens > 0; current = current->nextToken) {
+            for (current = current->nextToken->nextToken; current != endTok && parens > 0; current = current->nextToken) { //skip to end of func call
                 if (current->value[0] == '(') parens++;
                 if (current->value[0] == ')') parens--;
             }
@@ -351,18 +363,67 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
 
     return outQ; //return head of postfix expression
 }
+bool isValidMathOp(Token* head, Token* endTok) {
+    /*
+    function isValidExpression(tokens):
+    previousTokenType = None  // Tracks the type of the previous token
+    
+    for token in tokens:
+        currentTokenType = tokenType(token)
 
-MathOpNode* parseMathOp(Token* head, SymbolTable* table, int length) {
-    if (head == NULL) return NULL;
-    Token* current = head;
-    for (int i = 0; i < length; i++) {
-        if (current == NULL) {
-            printf("\033[1;31mInvalid math operation length.\033[0m\n");
-            return NULL;
-        }
-        current = current->nextToken;
+        // Check for errors in the token itself
+        if currentTokenType == 0:
+            return False  // Invalid token found
+
+        // If the current token is an operand
+        if currentTokenType < 0:
+            if previousTokenType < 0:  // Operand following operand is invalid
+                return False
+            // Operand after close paren is invalid
+            if previousTokenType == 2:
+                return False
+
+        // If the current token is an open parenthesis
+        elif currentTokenType == 1:
+            if previousTokenType < 0:  // Operand followed by open parenthesis is invalid
+                return False
+            if previousTokenType == 2:  // Close parenthesis followed by open parenthesis is invalid
+                return False
+
+        // If the current token is a close parenthesis
+        elif currentTokenType == 2:
+            if previousTokenType == None or previousTokenType == 1:  // No matching open parenthesis
+                return False
+            if previousTokenType > 7 or (4 <= previousTokenType <= 7):  // Operator followed by close paren is invalid
+                return False
+
+        // If the current token is a unary operator (4 to 7)
+        elif 4 <= currentTokenType <= 7:
+            if previousTokenType < 0 or previousTokenType == 2:  // Operand or close paren before unary is invalid
+                return False
+
+        // If the current token is a binary operator (>7)
+        elif currentTokenType > 7:
+            if previousTokenType == None or previousTokenType > 7 or previousTokenType == 1:
+                // Binary operator cannot start the expression, follow another operator, or follow open paren
+                return False
+
+        // Update previous token type
+        previousTokenType = currentTokenType
+
+    // Final check: expression must not end with a binary operator or an open parenthesis
+    if previousTokenType > 7 or previousTokenType == 1:
+        return False
+
+    return True  // Expression is valid
+    */
+}
+MathOpNode* parseMathOp(Token* head, Token* endTok, SymbolTable* table) {
+    if (!isValidMathOp(head, endTok)) {
+        printf("\033[1;31mInvalid math operation.\033[0m\n");
+        return NULL;
     }
-    queueOrStackNode* postfix = buildPostfix(head, current, table); //should be no reference to a token or token value in output (deep copied)
+    queueOrStackNode* postfix = buildPostfix(head, endTok, table); //should be no reference to a token or token value in output (deep copied)
     if (postfix == NULL) {
         printf("\033[1;31mError building postfix expression.\033[0m\n");
         return NULL;
@@ -371,6 +432,8 @@ MathOpNode* parseMathOp(Token* head, SymbolTable* table, int length) {
     freePostfix(postfix);
     return NULL;
 }
+
+//MAIN PARSING FUNCTION
 ASTNode* parseTokens(Token* head) {
     //...
 }
