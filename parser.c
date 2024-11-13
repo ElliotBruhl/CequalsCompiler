@@ -363,71 +363,62 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, SymbolTable* table) {
 
     return outQ; //return head of postfix expression
 }
-bool isValidMathOp(Token* head, Token* endTok) {
-    /*
-    function isValidExpression(tokens):
-    previousTokenType = None  // Tracks the type of the previous token
-    
-    for token in tokens:
-        currentTokenType = tokenType(token)
+bool isValidMathOp(Token* head, Token* endTok, SymbolTable* table) {
+    OperatorType previousTokenType = NULL_OP; //set to binary op to start
+    OperatorType currentTokenType;
 
-        // Check for errors in the token itself
-        if currentTokenType == 0:
-            return False  // Invalid token found
+    for (Token* current = head; current != endTok; current = current->nextToken) {
+        currentTokenType = getOperatorType(current, table);
+        if (currentTokenType == 0) //invalid token
+            return false; 
+        if (currentTokenType < 0) { //operand
+            if (previousTokenType < 0) return false; //operand following operand is invalid
+            if (previousTokenType == OP_CLOSE_PAREN) return false; //operand after close paren is invalid
+        }
+        else if (currentTokenType == OP_OPEN_PAREN) {
+            if (previousTokenType < 0) return false; //operand followed by open parenthesis is invalid
+            if (previousTokenType == OP_CLOSE_PAREN) return false; //close parenthesis followed by open parenthesis is invalid
+        }
+        else if (currentTokenType == OP_CLOSE_PAREN) {
+            if (previousTokenType >= 0) return false; //operator or start followed by close paren is invalid
+        }
+        else if (currentTokenType >= OP_BIT_NOT && currentTokenType <= OP_DEREF) { //unary operator
+            if (previousTokenType < 0 || previousTokenType == OP_CLOSE_PAREN) return false; //operand or close paren before unary is invalid
+        }
+        else if (currentTokenType >= OP_MUL) { //binary operator
+            if (previousTokenType >= 0 && previousTokenType != OP_CLOSE_PAREN) return false; //binary operator cannot start the expression, follow another operator, or follow open paren
+        }
+        previousTokenType = currentTokenType;
+    }
+    if (currentTokenType >= 0 && currentTokenType != OP_CLOSE_PAREN) return false; //expression cannot end with operator or an open parenthesis
 
-        // If the current token is an operand
-        if currentTokenType < 0:
-            if previousTokenType < 0:  // Operand following operand is invalid
-                return False
-            // Operand after close paren is invalid
-            if previousTokenType == 2:
-                return False
-
-        // If the current token is an open parenthesis
-        elif currentTokenType == 1:
-            if previousTokenType < 0:  // Operand followed by open parenthesis is invalid
-                return False
-            if previousTokenType == 2:  // Close parenthesis followed by open parenthesis is invalid
-                return False
-
-        // If the current token is a close parenthesis
-        elif currentTokenType == 2:
-            if previousTokenType == None or previousTokenType == 1:  // No matching open parenthesis
-                return False
-            if previousTokenType > 7 or (4 <= previousTokenType <= 7):  // Operator followed by close paren is invalid
-                return False
-
-        // If the current token is a unary operator (4 to 7)
-        elif 4 <= currentTokenType <= 7:
-            if previousTokenType < 0 or previousTokenType == 2:  // Operand or close paren before unary is invalid
-                return False
-
-        // If the current token is a binary operator (>7)
-        elif currentTokenType > 7:
-            if previousTokenType == None or previousTokenType > 7 or previousTokenType == 1:
-                // Binary operator cannot start the expression, follow another operator, or follow open paren
-                return False
-
-        // Update previous token type
-        previousTokenType = currentTokenType
-
-    // Final check: expression must not end with a binary operator or an open parenthesis
-    if previousTokenType > 7 or previousTokenType == 1:
-        return False
-
-    return True  // Expression is valid
-    */
+    return true;
 }
 MathOpNode* parseMathOp(Token* head, Token* endTok, SymbolTable* table) {
-    if (!isValidMathOp(head, endTok)) {
+    if (head == NULL || endTok == NULL || table == NULL) { //check for null
+        printf("\033[1;31mNull parameter to parseMathOp.\033[0m\n");
+        return NULL;
+    }
+    Token* current = head;
+    while (current != endTok) { //check for tail
+        if (current == NULL) {
+            printf("\033[1;31mHead token doesn't lead to tail in parseMathOp.\033[0m\n");
+            return NULL;
+        }
+        current = current->nextToken;
+    }
+    if (!isValidMathOp(head, endTok, table)) { //check for valid token sequences
         printf("\033[1;31mInvalid math operation.\033[0m\n");
         return NULL;
     }
-    queueOrStackNode* postfix = buildPostfix(head, endTok, table); //should be no reference to a token or token value in output (deep copied)
+    queueOrStackNode* postfix = buildPostfix(head, endTok, table); //build postfix (deep copied values from tokens)
     if (postfix == NULL) {
         printf("\033[1;31mError building postfix expression.\033[0m\n");
         return NULL;
     }
+    //TODO - build AST from postfix
+
+    //DEBUG
     printPostfix(postfix);
     freePostfix(postfix);
     return NULL;
