@@ -14,6 +14,7 @@ typedef enum {
     NODE_MATH_OP
 } NodeType;
 typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (oopsies)
+    I_HAVE_TO_FORCE_THIS_TO_BE_A_SIGNED_TYPE = -1, //this is why -1 >= 0 was true
     NULL_OP = 0,        // error operator
     // Precedence 1 - parentheses (a separator)
     OP_OPEN_PAREN = 1,  // (
@@ -65,15 +66,15 @@ typedef struct ASTNode {
     struct ASTNODE* next;
     struct ASTNODE* prev;
 } ASTNode;
+typedef struct ValueNode {
+    ValueType valueType;
+    void* value; //should be a unique pointer to avoid double free from tokens
+} ValueNode;
 typedef struct FuncCallNode {
     char* funcName;
     int argCount;
     ValueNode** args;
 } FuncCallNode;
-typedef struct ValueNode {
-    ValueType valueType;
-    void* value; //should be a unique pointer to avoid double free from tokens
-} ValueNode;
 typedef struct MathOpNode {
     ValueNode* left;
     OperatorType op;
