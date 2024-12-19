@@ -1,7 +1,7 @@
 #include "tokenizer.h"
+#include "varTable.h"
+#include "funcTable.h"
 #include "parser.h"
-#include "symbolTable.h"
-#include <stdio.h>
 
 int main() {
     printf("\033[0;34mCompiling...\033[0m\n");
@@ -19,20 +19,28 @@ int main() {
         freeTokens(tokens);
         return -2;
     }
+
     printTokens(tokens); //for debugging (temp)
 
-        //CREATE SYMBOL TABLE
-    SymbolTable *table = createTable();
-    if (table == NULL) {
-        printf("\033[0;31mFATAL ERROR: failed to create symbol table\033[0m\n");
+        //CREATE SYMBOL TABLES
+    VarTable *varTable = createVarTable();
+    if (varTable == NULL) {
+        printf("\033[0;31mFATAL ERROR: failed to create varTable\033[0m\n");
         freeTokens(tokens);
         return -3;
     }
+    FuncTable *funcTable = createFuncTable();
+    if (funcTable == NULL) {
+        printf("\033[0;31mFATAL ERROR: failed to create funcTable\033[0m\n");
+        freeTokens(tokens);
+        return -4;
+    }
+    
             //PARSE
     Token* current = tokens->nextToken;
     while (current != NULL && current->nextToken != NULL) {
         if (current->nextToken->value[0] == ';') {
-            parseMathOp(tokens, current, table);
+            parseMathOp(tokens, current, varTable, funcTable);
             tokens = current->nextToken->nextToken; //after semicolon
             current = tokens;
         }
@@ -42,7 +50,8 @@ int main() {
 
         //CLEANUP
     freeTokens(tokens);
-    freeTable(table);
+    freeVarTable(varTable);
+    freeFuncTable(funcTable);
 
     printf("\033[0;32mProgram compiled without interupt.\033[0m\n");
     return 0;

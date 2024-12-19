@@ -54,17 +54,19 @@ TOKENIZER (in tokenizer.(c/h)):
 PARSER (parser.(c/h)):
   -stores ASTs in double linked list structure where each node holds sub-node type indicator, pointer to sub-node, previous, and next
   -each AST node type:
-    math operation: main parser determines spot for a value, parseValue determines type of expression (simple v complex), isValidMathOp checks for (bad tokens, bad parenthesis, undefined operands, and bad length), buildPostfix converts to postfix notation, parseMathOp then takes postfix output and turns into an AST.
     var declaration,
-    array declaration,
     var assignment,
     function node,
     while node,
     if node
 
-SYMBOL TABLE (symbolTable.(c/h)):
-  -keeps track of all declared functions and variable names for each scope
-  -scopes can be created and freed easily
-  -scopes automatically resize (double their size when full)
-  -default size is 10 scopes, each with 10 spots for var/func names
-  -function overloading and variable/function shadowing work, but should be avoided
+VARTABLE (varTable.c/h):
+  -keeps track of all variable names for a given scope and their offset from the basePtr of the scope
+  -shadowing is allowed (lookup of name goes from current scope outward)
+  -default capacity of table is 5 scopes of 5 entries each
+  -when capacity is reached, number of scopes or entries doubles (keeping old entries/scopes)
+  
+FUNCTABLE (funcTable.c/h):
+  -keeps track of all functions' names and parameters
+  -only a global scope for functions is defined (attempting to shadow will overwrite if name and parameter count is the same)
+  -default capacity of 5 entries, which doubles when full

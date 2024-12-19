@@ -1,18 +1,18 @@
 #ifndef PARSER_H
 #define PARSER_H
 #include "tokenizer.h"
-#include "symbolTable.h"
+#include "varTable.h"
+#include "funcTable.h"
 #include <stdbool.h>
 
 typedef enum {
     NODE_VAR_DECL,
-    NODE_ARRAY_DECL,
     NODE_VAR_ASSIGN,
-    NODE_FUNC, 
+    NODE_FUNC_DECL, 
     NODE_WHILE,
     NODE_IF,
-    NODE_MATH_OP
 } NodeType;
+
 typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (oopsies)
     I_HAVE_TO_FORCE_THIS_TO_BE_A_SIGNED_TYPE = -1, //this is why -1 >= 0 was true
     NULL_OP = 0,        // error operator
@@ -53,19 +53,14 @@ typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (
     // Precedence 12 (l->r): 44-47
     OP_OR = 44          // ||
 } OperatorType;
+
 typedef enum {
     VALUE_OP,       //OperatorType
     VALUE_NUM,      //long long
     VALUE_VAR,      //char*
     VALUE_FUNC_RET, //FuncCallNode*
-    VALUE_MATH_OP   //MathOpNode*
+    VALUE_MATH_OP,  //MathOpNode*
 } ValueType;
-typedef struct ASTNode {
-    NodeType nodeType;
-    void* subNode;
-    struct ASTNODE* next;
-    struct ASTNODE* prev;
-} ASTNode;
 typedef struct ValueNode {
     ValueType valueType;
     void* value; //should be a unique pointer to avoid double free from tokens
@@ -76,39 +71,44 @@ typedef struct FuncCallNode {
     ValueNode** args;
 } FuncCallNode;
 typedef struct MathOpNode {
-    ValueNode* left;
-    OperatorType op;
+    OperatorType opType;
+    ValueNode* left; //nullable for unary operators
     ValueNode* right;
 } MathOpNode;
+
+typedef struct ASTNode {
+    NodeType nodeType;
+    void* subNode;
+    struct ASTNODE* next;
+    struct ASTNODE* prev;
+} ASTNode;
 typedef struct VarDeclNode {
     char* varName;
+    ValueNode* value;
 } VarDeclNode;
 typedef struct VarAssignNode {
     char* varName;
-    MathOpNode* mathOp;
-    void* value;
+    ValueNode* value;
 } VarAssignNode;
-typedef struct FuncNode {
+typedef struct FuncDeclNode {
     char* funcName;
-    int argCount;
-    char** argNames;
+    int numParams;
+    long long** params;
     ASTNode* body;
-} FuncNode;
+} FuncDeclNode;
 typedef struct WhileNode {
-    MathOpNode* mathOp;
-    void* condition;
+    ValueNode* condition;
     ASTNode* body;
 } WhileNode;
 typedef struct IfNode {
-    MathOpNode* mathOp;
-    void* condition;
+    ValueNode* condition;
     ASTNode* body;
     ASTNode* elseBody; //NULL if no else
 } IfNode;
 
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head);
-ASTNode* parseTokens(Token* head);
-MathOpNode* parseMathOp(Token* head, Token* endTok, SymbolTable* table);
+ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable);
+MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable); //will be private later (testing now)
 
 #endif
