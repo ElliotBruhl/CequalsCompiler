@@ -1,12 +1,12 @@
 GENERAL INFO:
   -compiler is written in C
   -output code will be in x86 assembly and probably not very cross-platform friendly
-    -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug
+    -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug/view output (no C library for printf yet)
   -language generally follows C syntax
     -all variables are signed 64 bit
     -all pointer arithmetic is in 64 bit increments
     -unary -, +, &, *, ~, and ! should be followed immediately with their operand
-    -https://en.cppreference.com/w/c/language/operator_precedence defines order of operations (not all are included however)
+    -https://en.cppreference.com/w/c/language/operator_precedence defines order of operations (not all listed there are included)
 
 EXIT CODES (main.c):
   0 - sucess
