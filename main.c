@@ -35,7 +35,12 @@ int main() {
         freeTokens(tokens);
         return -4;
     }
-    
+    pushVarScope(varTable); //push global scope
+    pushVarEntry(varTable, "a");
+    pushVarEntry(varTable, "b");
+    pushFuncEntry(funcTable, "func0", 0);
+    pushFuncEntry(funcTable, "func1", 1);
+    pushFuncEntry(funcTable, "func2", 2);
             //PARSE
     Token* current = tokens->nextToken;
     while (current != NULL && current->nextToken != NULL) {

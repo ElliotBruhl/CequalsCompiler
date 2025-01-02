@@ -9,7 +9,48 @@ void printASTs(ASTNode* head) { //TODO when otherwise finished
     //...
 }
 //PARSING FUNCTION ARGUMENTS
-FuncCallNode** parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs) { //takes in first paren and returns array of mathOpNodes
+int numParams(Token* head) { //takes in first paren and goes until matching end paren. -1 is error state
+    if (head->nextToken->value[0] == ')') return 0;
+    int parens = 1;
+    int params = 1;
+    for (Token* current = head->nextToken; current != NULL && parens > 0; current = current->nextToken) {
+        switch (current->value[0]) {
+            case '(':
+                parens++;
+                break;
+            case ')':
+                parens--;
+                break;
+            case ',':
+                if (parens == 1) params++;
+                break;
+            case ';':
+                return -1; //so invalid syntax doesnt result in read until end of file
+        }
+    }
+    return parens == 0 ? params : -1;
+}
+int getFuncArgType(Token* head, Token* tail) {//head is first token of arg and tail is last token of arg. -1 error, 0 simple arg, 1 func call, 2 math op
+    if (head == NULL || tail == NULL) {
+        printf("\033[1;31mNull parameter to getFuncArgType.\033[0m\n");
+        return -1;
+    }
+    if (head == tail) {
+        return 0;
+    }
+    if (head->tokenType == TOKEN_IDENTIFIER && head->nextToken->value[0] == '(') {
+        //go to end of call to determine if function call or math op that starts with func call
+        int parens = 1;
+        Token* current;
+        for (current = head->nextToken->nextToken; parens > 0; current = current->nextToken) {
+            if (current->value[0] == '(') parens++;
+            if (current->value[0] == ')') parens--;
+        }
+        if (current == tail) return 1;
+    }
+    return 2;
+}
+FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs) { //takes in first paren -- needs testing
     if (head == NULL || varTable == NULL || funcTable == NULL || numArgs <= 0) {
         printf("\033[1;31mBad parameter to parseFuncArgs.\033[0m\n");
         return NULL;
@@ -18,22 +59,131 @@ FuncCallNode** parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTab
         printf("\033[1;31mBad start token to parseFuncArgs.\033[0m\n");
         return NULL;
     }
-    FuncCallNode** args = (FuncCallNode**)malloc(numArgs * sizeof(FuncCallNode*));
-    if (args == NULL) {
+    FuncCallNode* funcCall = (FuncCallNode*)malloc(sizeof(FuncCallNode));
+    if (funcCall == NULL) {
         printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
         return NULL;
     }
-    
-    if (numArgs == 1) {
-        //parse the argument
+    //copy prev token value to funcCall->funcName
+    funcCall->funcName = (char*)malloc(strlen(head->prevToken->value) + 1);
+    if (funcCall->funcName == NULL) {
+        printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+        return NULL;
     }
-    else {
-        for (int i = 0; i < numArgs; i++) {
-            //parse each argument (split at commas)
-        }
-    }
+    strcpy(funcCall->funcName, head->prevToken->value);
+    funcCall->argCount = numArgs;
+    funcCall->args = (ValueNode**)malloc(numArgs * sizeof(ValueNode*));
 
-    return args;
+    Token* startToken = head->nextToken;
+    for (int i = 0; i < numArgs; i++) { //each iteration should start on first token of the argument
+        //seperate the argument
+        if (startToken == NULL) {
+            printf("\033[1;31mUnexpected end of file in parseFuncArgs.\033[0m\n");
+            return NULL;
+        }
+        int parens = 1;
+        Token* endToken = startToken;
+        while (true) {
+            if (endToken == NULL || endToken->value[0] == ';') {
+                printf("\033[1;31mError within argument in parseFuncArgs.\033[0m\n");
+                return NULL;
+            }
+            if (endToken->value[0] == '(') parens++;
+            if (endToken->value[0] == ')')
+                if (--parens == 0) break;
+            if (endToken->value[0] == ',' && parens == 1) break;
+            endToken = endToken->nextToken;
+        }
+
+        //parse the argument - start is on first token of arg and end is on close paren/comma
+        int argType = getFuncArgType(startToken, endToken->prevToken); 
+        switch (argType) {
+            case 0:
+                if (funcCall->args[i] == NULL) {
+                    printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                if (startToken->tokenType == TOKEN_IDENTIFIER) {
+                    if (varLookup(varTable, startToken->value) == NULL) {
+                        printf("\033[1;31mUndefined variable in function argument in parseFuncArgs.\033[0m\n");
+                        return NULL;
+                    }
+                    funcCall->args[i]->valueType = VALUE_VAR;
+                    funcCall->args[i]->value = malloc(strlen(startToken->value) + 1);
+                    if (funcCall->args[i]->value == NULL) {
+                        printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+                        return NULL;
+                    }
+                    strcpy((char*)funcCall->args[i]->value, startToken->value);
+                }
+                else if (startToken->tokenType == TOKEN_NUMBER) {
+                    funcCall->args[i]->valueType = VALUE_NUM;
+                    funcCall->args[i]->value = malloc(sizeof(long long));
+                    if (funcCall->args[i]->value == NULL) {
+                        printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+                        return NULL;
+                    }
+                    *(long long*)funcCall->args[i]->value = atoll(startToken->value);
+                }
+                else {
+                    printf("\033[1;31mBad argument type from getFuncArgType in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                break;
+            case 1:
+                if (funcCall->args[i] == NULL) {
+                    printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                int innerParams = numParams(startToken);
+                if (funcLookup(funcTable, startToken->value, innerParams) == NULL) {
+                    printf("\033[1;31mUndefined function in function argument in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                funcCall->args[i]->valueType = VALUE_FUNC_RET;
+                funcCall->args[i]->value = (FuncCallNode*)malloc(sizeof(FuncCallNode));
+                if (funcCall->args[i]->value == NULL) {
+                    printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                if (innerParams == -1) {
+                    printf("\033[1;31mError parsing nested function argument in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                if (innerParams == 0) {
+                    ((FuncCallNode*)(funcCall->args[i]->value))->funcName = (char*)malloc(strlen(startToken->prevToken->value) + 1);
+                    if (((FuncCallNode*)(funcCall->args[i]->value))->funcName == NULL) {
+                        printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+                        return NULL;
+                    }
+                    strcpy(((FuncCallNode*)(funcCall->args[i]->value))->funcName, startToken->prevToken->value);
+                    ((FuncCallNode*)(funcCall->args[i]->value))->argCount = 0;
+                    ((FuncCallNode*)(funcCall->args[i]->value))->args = NULL;
+                }
+                else {
+                    funcCall->args[i]->value = parseFuncArgs(startToken, varTable, funcTable, innerParams);
+                }
+                break;
+            case 2:
+                if (funcCall->args[i] == NULL) {
+                    printf("\033[1;31mMalloc error in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                funcCall->args[i]->valueType = VALUE_MATH_OP;
+                funcCall->args[i]->value = parseMathOp(startToken, endToken->prevToken, varTable, funcTable);
+                if (funcCall->args[i]->value == NULL) {
+                    printf("\033[1;31mError parsing math operation in function argument in parseFuncArgs.\033[0m\n");
+                    return NULL;
+                }
+                break;
+            default:
+                printf("\033[1;31mBad argument type from getFuncArgType in parseFuncArgs.\033[0m\n");
+                return NULL;
+        }
+
+        startToken = endToken->nextToken;
+    }
+    return funcCall;
 }
 //PARSING MATH OPERATIONS
 typedef struct queueOrStackNode {
@@ -76,27 +226,6 @@ void freePostfix(queueOrStackNode* head) {
         free(current); //queueOrStackNode*
         current = next;
     }
-}
-int numParams(Token* head) { //takes in first paren and goes until matching end paren. -1 is error state
-    if (head->nextToken->value[0] == ')') return 0;
-    int parens = 1;
-    int params = 1;
-    for (Token* current = head->nextToken; current != NULL && parens > 0; current = current->nextToken) {
-        switch (current->value[0]) {
-            case '(':
-                parens++;
-                break;
-            case ')':
-                parens--;
-                break;
-            case ',':
-                if (parens == 1) params++;
-                break;
-            case ';':
-                return -1; //so invalid syntax doesnt result in read until end of file
-        }
-    }
-    return parens == 0 ? params : -1;
 }
 OperatorType getOperatorType(Token* token, VarTable* varTable, FuncTable* funcTable) { //-3 for func, -2 for var, -1 for number, 0 for error, positive for valid operator (do op/4 for precedence)
     if (token == NULL) {
@@ -263,28 +392,26 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
                 return NULL;
             }
             newValNode->valueType = VALUE_FUNC_RET;
-            newValNode->value = (FuncCallNode*)malloc(sizeof(FuncCallNode));
-            if (newValNode->value == NULL) {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
+            if (params == 0) { //create the function call node here
+                newValNode->value = (FuncCallNode*)malloc(sizeof(FuncCallNode));
+                if (newValNode->value == NULL) {
+                    printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
+                ((FuncCallNode*)newValNode->value)->funcName = malloc(strlen(current->value) + 1);
+                if (((FuncCallNode*)newValNode->value)->funcName == NULL) {
+                    printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
+                strcpy(((FuncCallNode*)newValNode->value)->funcName, current->value);
+                ((FuncCallNode*)newValNode->value)->argCount = 0;
+                ((FuncCallNode*)newValNode->value)->args = NULL;
             }
-            else { //create function call node
-                strcpy((char*)((FuncCallNode*)newValNode->value)->funcName, current->value);
-                ((FuncCallNode*)newValNode->value)->argCount = params;
-                if (params == 0) ((FuncCallNode*)newValNode->value)->args = NULL;
-                else {
-                    ((FuncCallNode*)newValNode->value)->args = (ValueNode**)malloc(params * sizeof(ValueNode*));
-                    if (((FuncCallNode*)newValNode->value)->args == NULL) { 
-                        printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                        return NULL;
-                    }
-                    else { //parse function arguments
-                        ((FuncCallNode*)newValNode->value)->args = parseFuncArgs(current->nextToken, varTable, funcTable, params);
-                        if (((FuncCallNode*)newValNode->value)->args == NULL) {
-                            printf("\033[1;31mError parsing function arguments in buildPostfix. Line %d.\033[0m\n", current->lineNum);
-                            return NULL;
-                        }
-                    }
+            else { //parse the function call with helper function
+                newValNode->value = parseFuncArgs(current->nextToken, varTable, funcTable, params);
+                if (newValNode->value == NULL) {
+                    printf("\033[1;31mparseFuncArgs failed on function call in line %d.\033[0m\n", current->lineNum);
+                    return NULL;
                 }
             }
             outQBack = enqueue(outQBack, newValNode);

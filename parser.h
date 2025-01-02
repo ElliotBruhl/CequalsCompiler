@@ -55,8 +55,8 @@ typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (
 } OperatorType;
 
 typedef enum {
-    VALUE_OP,       //OperatorType
-    VALUE_NUM,      //long long
+    VALUE_OP,       //OperatorType*
+    VALUE_NUM,      //long long*
     VALUE_VAR,      //char*
     VALUE_FUNC_RET, //FuncCallNode*
     VALUE_MATH_OP,  //MathOpNode*
