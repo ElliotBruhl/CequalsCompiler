@@ -84,16 +84,15 @@ typedef struct ASTNode {
 } ASTNode;
 typedef struct VarDeclNode {
     char* varName;
-    ValueNode* value;
 } VarDeclNode;
 typedef struct VarAssignNode {
     char* varName;
-    ValueNode* value;
+    ValueNode* newValue;
 } VarAssignNode;
 typedef struct FuncDeclNode {
     char* funcName;
-    int numParams;
-    long long** params;
+    int argCount;
+    char** argNames;
     ASTNode* body;
 } FuncDeclNode;
 typedef struct WhileNode {
@@ -103,7 +102,7 @@ typedef struct WhileNode {
 typedef struct IfNode {
     ValueNode* condition;
     ASTNode* body;
-    ASTNode* elseBody; //NULL if no else
+    ASTNode* elseBody;
 } IfNode;
 
 void freeASTNodes(ASTNode* head);

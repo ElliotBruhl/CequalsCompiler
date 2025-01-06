@@ -1,19 +1,16 @@
 GENERAL INFO:
   -compiler is written in C
-  -output code will be in x86 assembly and probably not very cross-platform friendly
-    -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug/view output (no C library for printf yet)
-  -language generally follows C syntax
-    -all variables are signed 64 bit
-    -all pointer arithmetic is in 64 bit increments
-    -unary -, +, &, *, ~, and ! should be followed immediately with their operand
-    -https://en.cppreference.com/w/c/language/operator_precedence defines order of operations (not all listed there are included)
+  -input code in custom language
+  -output code will be in x86 assembly
+    -I use nasm to assemble (nasm -f win64 -g test.asm -o test.obj), gcc to link (gcc test.obj -o test.exe -g), and gdb to debug
+  -custom language generally follows C syntax
 
 EXIT CODES (main.c):
-  0 - sucess
+   0 - sucess
   -1 - file read failed
-  -2 - tokenizer failed (should have specified error)
-  -3 - symbol table creation failed
-  -4 - parser failed (should have specified error)
+  -2 - tokenizer failed
+  -3 - variable symbol table creation failed
+  -4 - function symbol table creation failed
 
 TOKENIZER (in tokenizer.(c/h)):
   -Stores data in double linked list of structs where each node holds line number, token type, token value, previous, and next:
@@ -36,9 +33,9 @@ TOKENIZER (in tokenizer.(c/h)):
       ~: bitwise not
       ^: bitwise xor
     3: keywords - all language defined words:
-      Note that keywords will be ignored if followed by alphanumeric char: break1 is not a keyword but break+ is a keyword (and then operator).
-      var: allocates memory for 64 bit variable value. No initial values. Adheres to scope.
-      func: delcares a function in current scope. Must return a value.
+      Note that keywords will be ignored if followed by alphanumeric character
+      var: allocates memory for 64 bit variable value. Memory is uninitialized. Adheres to scope.
+      func: delcares a function in current scope. All functions must return a value (no void functions).
       return: leaves current function and returns value listed afterward.
       while: declares a loop.
       continue: skips to next iteration in while loop.
@@ -46,19 +43,23 @@ TOKENIZER (in tokenizer.(c/h)):
       if: declares a conditional block.
       else: optional second part of if statement that will execute if the if statement fails. Must construct else if manually.
     4: separators
-    parenthesis: for loop, if, func, or math
-    curly braces: define subscope for loops, if, or funcs
+    parenthesis: used for while, if, func, or math operations
+    curly braces: defines a subscope for loops, if, else, or funcs
     commas: seperate function arguments
     semicolon: ends a statement
 
 PARSER (parser.(c/h)):
-  -stores ASTs in double linked list structure where each node holds sub-node type indicator, pointer to sub-node, previous, and next
+  -stores ASTs in double linked list structure where each node holds sub-node type indicator, sub-node, previous, and next
   -each AST node type:
-    var declaration,
-    var assignment,
-    function node,
-    while node,
-    if node
+    var declaration: holds var name (which can be looked up in symbol table for stack offset)
+    var assignment: holds var name and new value
+    function declaration: holds func name, argument count, argument names, and func body
+    while loop: holds condition and loop body
+    conditional: holds condition, if body, and nullable else body
+  -parsing of math operations:
+    -tokenizer tokens are converted into more specific  value tokens: operators as an OperatorType* (an enum), number literals as long long*, variables as char*, function calls into FuncCallNode* (contains name, arg count, and args)
+    -those tokens are then put into postfix notation, then into binary tree of value tokens
+    -that binary tree can be referenced by any AST node that takes a value (simple values are the same type but without any branches)
 
 VARTABLE (varTable.c/h):
   -keeps track of all variable names for a given scope and their offset from the basePtr of the scope
@@ -70,3 +71,6 @@ FUNCTABLE (funcTable.c/h):
   -keeps track of all functions' names and parameters
   -only a global scope for functions is defined (attempting to shadow will overwrite if name and parameter count is the same)
   -default capacity of 5 entries, which doubles when full
+
+CODEGEN:
+  -todo
