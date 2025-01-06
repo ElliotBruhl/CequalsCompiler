@@ -31,6 +31,7 @@ Token* createToken(int line, TokenType type, char* valStart, int valLen, Token* 
     return newToken;
 }
 void printTokens(Token* head) {
+    printf("Printing Tokens:\n");
     Token* current = head;
     while (current != NULL) {
         printf("Line: %d, Token type: %d, Value: %s\n", current->lineNum, current->tokenType, current->value);

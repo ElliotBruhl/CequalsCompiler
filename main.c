@@ -20,7 +20,7 @@ int main() {
         return -2;
     }
 
-    printTokens(tokens); //for debugging (temp)
+    printTokens(tokens);
 
         //CREATE SYMBOL TABLES
     VarTable *varTable = createVarTable();
@@ -35,12 +35,15 @@ int main() {
         freeTokens(tokens);
         return -4;
     }
+
     pushVarScope(varTable); //push global scope
     pushVarEntry(varTable, "a");
     pushVarEntry(varTable, "b");
-    pushFuncEntry(funcTable, "func0", 0);
-    pushFuncEntry(funcTable, "func1", 1);
-    pushFuncEntry(funcTable, "func2", 2);
+    pushVarEntry(varTable, "c");
+    pushFuncEntry(funcTable, "f1", 0);
+    pushFuncEntry(funcTable, "f2", 1);
+    pushFuncEntry(funcTable, "f3", 2);
+
             //PARSE
     Token* current = tokens->nextToken;
     while (current != NULL && current->nextToken != NULL) {
