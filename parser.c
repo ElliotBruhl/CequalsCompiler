@@ -9,6 +9,23 @@ void printASTs(ASTNode* head) { //TODO when otherwise finished
     //...
 }
 //PARSING FUNCTION ARGUMENTS
+Token* skipFuncParams(Token* head) { //takes in first paren and returns matching end paren
+    if (head == NULL || head->value == NULL) {
+        printf("\033[1;31mNull parameter to skipFuncParams.\033[0m\n");
+        return NULL;
+    }
+    if (head->value[0] != '(') {
+        printf("\033[1;31mBad start token to skipFuncParams.\033[0m\n");
+        return NULL;
+    }
+    int parens = 1;
+    for (Token* current = head->nextToken; current != NULL && parens > 0; current = current->nextToken) {
+        if (current->value[0] == '(') parens++;
+        else if (current->value[0] == ')') parens--;
+        if (parens == 0) return current;
+    }
+    return NULL;
+}
 int numParams(Token* head) { //takes in first paren and goes until matching end paren. -1 is error state
     if (head->nextToken->value[0] == ')') return 0;
     int parens = 1;
@@ -25,30 +42,26 @@ int numParams(Token* head) { //takes in first paren and goes until matching end 
                 if (parens == 1) params++;
                 break;
             case ';':
-                return -1; //so invalid syntax doesnt result in read until end of file
+                return -1;
         }
     }
     return parens == 0 ? params : -1;
 }
-int getFuncArgType(Token* head, Token* tail) {//head is first token of arg and tail is last token of arg. -1 error, 0 simple arg, 1 func call, 2 math op
+int getFuncArgType(Token* head, Token* tail) { //head is first token of arg and tail is last token of arg (neither should be a parenthesis). -1 error, 0 simple arg, 1 func call, 2 math op
     if (head == NULL || tail == NULL) {
         printf("\033[1;31mNull parameter to getFuncArgType.\033[0m\n");
         return -1;
     }
-    if (head == tail) {
+    if (head == tail) { //1 token argument (simple arg)
         return 0;
     }
     if (head->tokenType == TOKEN_IDENTIFIER && head->nextToken->value[0] == '(') {
         //go to end of call to determine if function call or math op that starts with func call
-        int parens = 1;
-        Token* current;
-        for (current = head->nextToken->nextToken; parens > 0; current = current->nextToken) {
-            if (current->value[0] == '(') parens++;
-            if (current->value[0] == ')') parens--;
-        }
-        if (current == tail) return 1;
+        Token* endOfCall = skipFuncParams(head->nextToken);
+        if (endOfCall == NULL) return -1; //error
+        if (endOfCall == tail) return 1; //function call
     }
-    return 2;
+    return 2; //math op
 }
 FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs) { //takes in first paren -- needs testing
     if (head == NULL || varTable == NULL || funcTable == NULL || numArgs <= 0) {
@@ -443,10 +456,10 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
                 return NULL;
             }
             if (outQ == NULL) outQ = outQBack;
-            int parens = 1;
-            for (current = current->nextToken->nextToken; current != endTok && parens > 0; current = current->nextToken) { //skip to end of func call
-                if (current->value[0] == '(') parens++;
-                if (current->value[0] == ')') parens--;
+            Token* current = skipFuncParams(current->nextToken); //passes an invalid token to skipFuncParams resulting in SEGFAULT
+            if (current == NULL) {
+                printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
+                return NULL;
             }
         }
         else if (opType == OP_OPEN_PAREN) { //push onto stack
@@ -598,6 +611,13 @@ bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* fu
         printf("\033[1;31mExpression starts with a binary op or close paren (isValidMathOp). Line %d. Value %s.\033[0m\n", head->lineNum, head->value);
         return false;
     }
+    if (currentTokenType == -3) {//skip to end of func call
+        head = skipFuncParams(head->nextToken);
+        if (head == NULL) {
+            printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
+            return false;
+        }
+    }
     OperatorType previousTokenType = currentTokenType;
     //check sequence of tokens
     for (Token* current = head->nextToken; current != endTok; current = current->nextToken) {
@@ -644,17 +664,14 @@ bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* fu
                 return false;
             }
         }
-        previousTokenType = currentTokenType;
         if (currentTokenType == -3) { //skip to end of func call
-            int parens = 1;
-            for (current = current->nextToken->nextToken; current != endTok && parens > 0; current = current->nextToken) {
-                if (current->value[0] == '(') parens++;
-                if (current->value[0] == ')') parens--;
-            }
-            if (current == endTok) { //I don't know why main for loop doesnt catch this
-                break;
+            current = skipFuncParams(current->nextToken);
+            if (current == NULL) {
+                printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
+                return NULL;
             }
         }
+        previousTokenType = currentTokenType;
     }
     return true;
 }
