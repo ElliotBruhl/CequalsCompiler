@@ -576,7 +576,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
 
     return outQ; //return head of postfix expression
 }
-bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //checks for valid math operation
+bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //checks for valid math operation ----- buggy with function calls
     //check for null parameters
     if (head == NULL || endTok == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to isValidMathOp.\033[0m\n");
@@ -648,13 +648,13 @@ bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* fu
         }
         else if (currentTokenType == OP_CLOSE_PAREN) { //close parenthesis
             if (previousTokenType > 0) {
-                printf("\033[1;31mClose paren following operator or start of math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                printf("\033[1;31mClose paren following operator (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
                 return false;
             }
         }
         else if (currentTokenType >= OP_BIT_NOT && currentTokenType <= OP_DEREF) { //unary operator
             if (previousTokenType < 0 || previousTokenType == OP_CLOSE_PAREN) {
-                printf("\033[1;31mUnary operator following operand or close parenthesis in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                printf("\033[1;31mUnary operator following operand or close parenthesis (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
                 return false;
             }
         }
