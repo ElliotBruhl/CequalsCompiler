@@ -1,9 +1,7 @@
 # Compiler Information
 - **Language**: C
-- **Input**: Custom language
+- **Input**: Custom language (similar to C)
 - **Output**: x86-64 Assembly (NASM syntax)
-- **Syntax**: Generally follows C syntax
-- **Other Tools I Use**: NASM assembler, GCC linker, and GDB debugger
 ## Exit Codes (main.c)
 - `0`: Success
 - `-1`: File read failed
