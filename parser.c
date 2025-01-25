@@ -27,6 +27,8 @@ Token* skipFuncParams(Token* head) { //takes in first paren and returns matching
     return NULL;
 }
 int numParams(Token* head) { //takes in first paren and goes until matching end paren. -1 is error state
+    if (head == NULL || head->nextToken == NULL) return -1;
+    if (head->value[0] != '(') return -1;
     if (head->nextToken->value[0] == ')') return 0;
     int parens = 1;
     int params = 1;
@@ -369,7 +371,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
     queueOrStackNode* outQBack = NULL; //queue here
     queueOrStackNode* opStack = NULL; //stack here
 
-    for (Token* current = head; current != endTok->nextToken; current = current->nextToken) {
+    for (Token* current = head; current != endTok->nextToken && current != NULL; current = current->nextToken) {
         OperatorType opType = getOperatorType(current, varTable, funcTable);
         if (opType == 0) return NULL; //error
         if (opType == -1) { //number -- add to ouput queue
@@ -456,7 +458,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
                 return NULL;
             }
             if (outQ == NULL) outQ = outQBack;
-            Token* current = skipFuncParams(current->nextToken); //passes an invalid token to skipFuncParams resulting in SEGFAULT
+            current = skipFuncParams(current->nextToken);
             if (current == NULL) {
                 printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
                 return NULL;
@@ -576,7 +578,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
 
     return outQ; //return head of postfix expression
 }
-bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //checks for valid math operation ----- buggy with function calls
+bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //checks for valid math operation
     //check for null parameters
     if (head == NULL || endTok == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to isValidMathOp.\033[0m\n");
@@ -670,6 +672,7 @@ bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* fu
                 printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
                 return NULL;
             }
+            if (current == endTok) break; //shouldn't this line be irrelevant because of for loop condition? (current != endTok)
         }
         previousTokenType = currentTokenType;
     }
