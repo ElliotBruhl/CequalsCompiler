@@ -72,15 +72,16 @@ typedef struct FuncCallNode {
 } FuncCallNode;
 typedef struct MathOpNode {
     OperatorType opType;
-    ValueNode* left;
-    ValueNode* right; //nullable for unary operators
+    ValueNode* left; //nullable for unary operators
+    ValueNode* right; 
 } MathOpNode;
 
+typedef struct ASTNode ASTNode;
 typedef struct ASTNode {
     NodeType nodeType;
     void* subNode;
-    struct ASTNODE* next;
-    struct ASTNODE* prev;
+    ASTNode* next;
+    ASTNode* prev;
 } ASTNode;
 typedef struct VarDeclNode {
     char* varName;
@@ -102,7 +103,7 @@ typedef struct WhileNode {
 typedef struct IfNode {
     ValueNode* condition;
     ASTNode* body;
-    ASTNode* elseBody;
+    ASTNode* elseBody; //nullable for no else
 } IfNode;
 
 void freeASTNodes(ASTNode* head);
