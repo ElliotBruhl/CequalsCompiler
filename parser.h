@@ -72,8 +72,8 @@ typedef struct FuncCallNode {
 } FuncCallNode;
 typedef struct MathOpNode {
     OperatorType opType;
-    ValueNode* left; //nullable for unary operators
-    ValueNode* right;
+    ValueNode* left;
+    ValueNode* right; //nullable for unary operators
 } MathOpNode;
 
 typedef struct ASTNode {
