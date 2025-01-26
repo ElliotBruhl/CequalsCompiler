@@ -1,11 +1,7 @@
 # Compiler Information
 - **Language**: C
-- **Input**: Custom language
-- **Output**: x86 Assembly
-- **Assembler**: I use NASM (not included)
-- **Linker**: I use GCC (not included)
-- **Debugger**: I use GDB (not included)
-- **Syntax**: Generally follows C syntax
+- **Input**: Custom language (similar to C)
+- **Output**: x86-64 Assembly (NASM syntax)
 ## Exit Codes (main.c)
 - `0`: Success
 - `-1`: File read failed
@@ -21,7 +17,7 @@ The tokenizer stores data in a doubly linked list of structs where each node hol
 - **Next node**
 ### Token Types
 1. **Identifiers**: All alphanumeric strings, except keywords, that begin with a letter and continue until a non-alphanumeric character is encountered.
-2. **Numbers**: Positive or negative numbers. Positive or negative signs must immediately precede a number if present. Overflow/underflow are undefined behavior.
+2. **Numbers**: Positive or negative numbers. Positive or negative signs must immediately precede a number if present.
 3. **Operators**: Symbols used in the language:
    - `+`: Add
    - `-`: Subtract
