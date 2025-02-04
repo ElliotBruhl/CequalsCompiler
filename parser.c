@@ -2,17 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-//DATA STRUCTURES
-typedef struct queueOrStackNode {
-    ValueNode* value;
-    struct queueOrStackNode* next;
-} queueOrStackNode;
-
 //FORWARD DECLARATIONS
 FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs);
 
-//DEBUG/FREE FUNCTIONS
-void printValueNode(ValueNode* value) {
+//DEBUG FUNCTIONS
+void printValueNode(ValueNode* value) { //DEBUG (temp)
     if (value == NULL) {
         printf("NULL ValueNode");
         return;
@@ -47,21 +41,7 @@ void printPostfix(queueOrStackNode* head) { //DEBUG (temp)
         current = current->next;
     }
 }
-void freePostfix(queueOrStackNode* head) {
-    if (head == NULL) return;
-    queueOrStackNode* current = head;
-    while (current != NULL) {
-        queueOrStackNode* next = current->next;
-        free(current->value->value); //void*
-        free(current->value); //ValueNode*
-        free(current); //queueOrStackNode*
-        current = next;
-    }
-}
-void freeASTNodes(ASTNode* head) { //TODO
-    //...
-}
-void printASTs(ASTNode* head) {
+void printASTs(ASTNode* head) { //DEBUG (temp)
     if (head == NULL) return;
     ASTNode* current = head;
     while (current != NULL) {
@@ -92,6 +72,21 @@ void printASTs(ASTNode* head) {
         }
         current = current->next;
     }
+}
+//FREE FUNCTIONS
+void freePostfix(queueOrStackNode* head) {
+    if (head == NULL) return;
+    queueOrStackNode* current = head;
+    while (current != NULL) {
+        queueOrStackNode* next = current->next;
+        free(current->value->value); //void*
+        free(current->value); //ValueNode*
+        free(current); //queueOrStackNode*
+        current = next;
+    }
+}
+void freeASTNodes(ASTNode* head) { //TODO
+    //...
 }
 //HELPER FUNCTIONS
 Token* skipFuncParams(Token* head) { //takes in first paren and returns matching end paren
@@ -134,8 +129,6 @@ int numParams(Token* head) { //takes in first paren and goes until matching end 
     }
     return parens == 0 ? params : -1;
 }
-
-//PARSING MATH OPERATIONS
 OperatorType getOperatorType(Token* token, VarTable* varTable, FuncTable* funcTable) { //-3 for func, -2 for var, -1 for number, 0 for error, positive for valid operator (do op/4 for precedence)
     if (token == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to getOperatorType.\033[0m\n");
@@ -213,6 +206,8 @@ OperatorType getOperatorType(Token* token, VarTable* varTable, FuncTable* funcTa
             return 0; //unknown token (error)
     }
 }
+//PARSING MATH OPERATIONS
+    //POSTFIX CONVERSION
 queueOrStackNode* enqueue(queueOrStackNode* back, ValueNode* value) { //returns new back
     queueOrStackNode* newNode = (queueOrStackNode*)malloc(sizeof(queueOrStackNode));
     if (newNode == NULL) {
@@ -455,112 +450,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
 
     return outQ; //return head of postfix expression
 }
-bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //checks for valid math operation (inclusive)
-    //check for null parameters
-    if (head == NULL || endTok == NULL || varTable == NULL || funcTable == NULL) {
-        printf("\033[1;31mNull parameter to isValidMathOp.\033[0m\n");
-        return false;
-    }
-    //check for mismatched parentheses
-    int parens = 0; 
-    for (Token* current = head; current != endTok->nextToken; current = current->nextToken) {
-        if (current->value[0] == '(') parens++;
-        if (current->value[0] == ')') parens--;
-    }
-    if (parens != 0) {
-        printf("\033[1;31mMismatched parentheses in math operation (isValidMathOp) Line %d.\033[0m\n", endTok->lineNum);
-        return false;
-    }
-    //check start and end tokens
-    OperatorType currentTokenType = getOperatorType(endTok, varTable, funcTable);
-    if (currentTokenType == 0) {
-        printf("\033[1;31mError token encountered in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", endTok->lineNum, endTok->value);
-        return false;
-    }
-    if (currentTokenType > 0 && currentTokenType != OP_CLOSE_PAREN) { //can't end with operator or open paren
-        printf("\033[1;31mExpression ends with operator or open paren (isValidMathOp). Line %d. Value %s.\033[0m\n", endTok->lineNum, endTok->value);
-        return false;
-    }
-    currentTokenType = getOperatorType(head, varTable, funcTable);
-    if (currentTokenType == 0) {
-        printf("\033[1;31mError token encountered math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", head->lineNum, head->value);
-        return false;
-    }
-    if (currentTokenType == OP_CLOSE_PAREN || currentTokenType >= OP_MUL) { //can't start with binary op or close paren
-        printf("\033[1;31mExpression starts with a binary op or close paren (isValidMathOp). Line %d. Value %s.\033[0m\n", head->lineNum, head->value);
-        return false;
-    }
-    if (currentTokenType == -3) {//skip to end of func call
-        head = skipFuncParams(head->nextToken);
-        if (head == NULL) {
-            printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
-            return false;
-        }
-        if (head == endTok) {
-            printf("\033[1;31mSimple func call not mathOp (isValidMathOp). Line %d.\033[0m\n", head->lineNum);
-            return false;
-        }
-    }
-    OperatorType previousTokenType = currentTokenType;
-    //check sequence of tokens
-    Token* current = head->nextToken;
-    while (current != endTok) {
-        currentTokenType = getOperatorType(current, varTable, funcTable);
-        if (currentTokenType == 0) { //invalid token
-            printf("\033[1;31mError token encountered in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-            return false;
-        }
-        if (currentTokenType < 0) { //operand
-            if (previousTokenType < 0) {
-                printf("\033[1;31mSequential operands in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-                return false;
-            }
-            if (previousTokenType == OP_CLOSE_PAREN) {
-                printf("\033[1;31mOperand following close paren in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-                return false;
-            }
-        }
-        else if (currentTokenType == OP_OPEN_PAREN) { //open parenthesis
-            if (previousTokenType < 0) {
-                printf("\033[1;31mOpen paren following operand in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-                return false;
-            }
-            if (previousTokenType == OP_CLOSE_PAREN) {
-                printf("\033[1;31mOpen paren following close paren in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-                return false;
-            }
-        }
-        else if (currentTokenType == OP_CLOSE_PAREN) { //close parenthesis
-            if (previousTokenType > 0) {
-                printf("\033[1;31mClose paren following operator (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-                return false;
-            }
-        }
-        else if (currentTokenType >= OP_BIT_NOT && currentTokenType <= OP_DEREF) { //unary operator
-            if (previousTokenType < 0 || previousTokenType == OP_CLOSE_PAREN) {
-                printf("\033[1;31mUnary operator following operand or close parenthesis (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-                return false;
-            }
-        }
-        else if (currentTokenType >= OP_MUL) { //binary operator
-            if (previousTokenType > 0 && previousTokenType != OP_CLOSE_PAREN) {
-                printf("\033[1;31mBinary operator following another operator or open parenthesis (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
-                return false;
-            }
-        }
-        if (currentTokenType == -3) { //skip to end of func call
-            current = skipFuncParams(current->nextToken);
-            if (current == NULL) {
-                printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            if (current == endTok) break; //shouldn't this line be irrelevant because of for loop condition? (current != endTok)
-        }
-        current = current->nextToken;
-        previousTokenType = currentTokenType;
-    }
-    return true;
-}
+    //POSTFIX TO TREE
 ValueNode* deepCopyValueNode(ValueNode* old) {
     if (old->valueType == VALUE_MATH_OP) { //should already be deep copied
         return old;
@@ -691,52 +581,12 @@ MathOpNode* postfixToTree(queueOrStackNode* head) { //takes in postfix expressio
         printf("\033[1;31mRoot node is not math op node in postfixToTree.\033[0m\n");
         return NULL;
     }
-    //freePostfix(head); //free postfix expression --- causes errors becuase it should only be freed on last iteration of recursion (for nested math ops)
+
+    freePostfix(head);
+
     return nodeStack->value->value;
 }
-MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //takes in math expression (inclusive) and returns AST
-    if (head == NULL || endTok == NULL || varTable == NULL || funcTable == NULL) {
-        printf("\033[1;31mNull parameter to parseMathOp.\033[0m\n");
-        return NULL;
-    }
-    if (head == endTok) { //check for empty
-        printf("\033[1;31mOne token math operation passed to parseMathOp. Line %d. Value %s.\033[0m\n", head->lineNum, head->value);
-        return NULL;
-    }
-    Token* current = head;
-    while (current != endTok) { //check for tail
-        if (current == NULL) {
-            printf("\033[1;31mHead token doesn't lead to tail in parseMathOp. Line %d.\033[0m\n", head->lineNum);
-            return NULL;
-        }
-        current = current->nextToken;
-    }
-    if (!isValidMathOp(head, endTok, varTable, funcTable)) { //check for valid token sequences
-        printf("\033[1;31mError when validating math operation. Line %d.\033[0m\n", head->lineNum);
-        return NULL;
-    }
-    queueOrStackNode* postfix = buildPostfix(head, endTok, varTable, funcTable); //build postfix (deep copied values from tokens)
-    if (postfix == NULL) {
-        printf("\033[1;31mError building postfix expression. Line %d.\033[0m\n", head->lineNum);
-        return NULL;
-    }
-    printPostfix(postfix); //DEBUG
-
-    MathOpNode* mathOpTree = postfixToTree(postfix); //build binary tree from postfix
-    if (mathOpTree == NULL) {
-        printf("\033[1;31mError building AST from postfix expression. Line %d.\033[0m\n", head->lineNum);
-        return NULL;
-    }
-
-    ValueNode* temp = malloc(sizeof(ValueNode));
-    temp->valueType = VALUE_MATH_OP;
-    temp->value = mathOpTree;
-    printValueNode(temp); //DEBUG
-
-    return mathOpTree;
-}
-
-//PARSING FUNCTION ARGUMENTS
+    //PARSE FUNCTION ARGUMENTS
 int getFuncArgType(Token* head, Token* tail) { //head is first token of arg and tail is last token of arg (neither should be a parenthesis). -1 error, 0 simple arg, 1 func call, 2 math op
     if (head == NULL || tail == NULL) {
         printf("\033[1;31mNull parameter to getFuncArgType.\033[0m\n");
@@ -753,7 +603,7 @@ int getFuncArgType(Token* head, Token* tail) { //head is first token of arg and 
     }
     return 2; //math op
 }
-FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs) { //takes in first paren of call and returns args formatted as func call node
+FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs) { //takes in first paren of call and returns call formatted as func call node
     if (head == NULL || varTable == NULL || funcTable == NULL || numArgs <= 0) {
         printf("\033[1;31mBad parameter to parseFuncArgs.\033[0m\n");
         return NULL;
@@ -877,7 +727,7 @@ FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTabl
                     ((FuncCallNode*)(funcCall->args[i]->value))->args = NULL;
                 }
                 else {
-                    funcCall->args[i]->value = parseFuncArgs(startToken, varTable, funcTable, innerParams);
+                    funcCall->args[i]->value = parseFuncArgs(startToken->nextToken, varTable, funcTable, innerParams); //causes errors -------------------------------------------------------------------------
                     if (funcCall->args[i]->value == NULL) {
                         printf("\033[1;31mError parsing nested function argument in parseFuncArgs.\033[0m\n");
                         return NULL;
@@ -904,6 +754,159 @@ FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTabl
         startToken = endToken->nextToken;
     }
     return funcCall;
+}
+    //VALIDATION/MAIN FUNCTIONS
+bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //checks for valid math operation (inclusive)
+    //check for null parameters
+    if (head == NULL || endTok == NULL || varTable == NULL || funcTable == NULL) {
+        printf("\033[1;31mNull parameter to isValidMathOp.\033[0m\n");
+        return false;
+    }
+    //check for mismatched parentheses
+    int parens = 0; 
+    for (Token* current = head; current != endTok->nextToken; current = current->nextToken) {
+        if (current->value[0] == '(') parens++;
+        if (current->value[0] == ')') parens--;
+    }
+    if (parens != 0) {
+        printf("\033[1;31mMismatched parentheses in math operation (isValidMathOp) Line %d.\033[0m\n", endTok->lineNum);
+        return false;
+    }
+    //check start and end tokens
+    OperatorType currentTokenType = getOperatorType(endTok, varTable, funcTable);
+    if (currentTokenType == 0) {
+        printf("\033[1;31mError token encountered in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", endTok->lineNum, endTok->value);
+        return false;
+    }
+    if (currentTokenType > 0 && currentTokenType != OP_CLOSE_PAREN) { //can't end with operator or open paren
+        printf("\033[1;31mExpression ends with operator or open paren (isValidMathOp). Line %d. Value %s.\033[0m\n", endTok->lineNum, endTok->value);
+        return false;
+    }
+    currentTokenType = getOperatorType(head, varTable, funcTable);
+    if (currentTokenType == 0) {
+        printf("\033[1;31mError token encountered math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", head->lineNum, head->value);
+        return false;
+    }
+    if (currentTokenType == OP_CLOSE_PAREN || currentTokenType >= OP_MUL) { //can't start with binary op or close paren
+        printf("\033[1;31mExpression starts with a binary op or close paren (isValidMathOp). Line %d. Value %s.\033[0m\n", head->lineNum, head->value);
+        return false;
+    }
+    if (currentTokenType == -3) {//skip to end of func call
+        head = skipFuncParams(head->nextToken);
+        if (head == NULL) {
+            printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
+            return false;
+        }
+        if (head == endTok) {
+            printf("\033[1;31mSimple func call not mathOp (isValidMathOp). Line %d.\033[0m\n", head->lineNum);
+            return false;
+        }
+    }
+    OperatorType previousTokenType = currentTokenType;
+    //check sequence of tokens
+    Token* current = head->nextToken;
+    while (current != endTok) {
+        currentTokenType = getOperatorType(current, varTable, funcTable);
+        if (currentTokenType == 0) { //invalid token
+            printf("\033[1;31mError token encountered in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+            return false;
+        }
+        if (currentTokenType < 0) { //operand
+            if (previousTokenType < 0) {
+                printf("\033[1;31mSequential operands in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return false;
+            }
+            if (previousTokenType == OP_CLOSE_PAREN) {
+                printf("\033[1;31mOperand following close paren in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return false;
+            }
+        }
+        else if (currentTokenType == OP_OPEN_PAREN) { //open parenthesis
+            if (previousTokenType < 0) {
+                printf("\033[1;31mOpen paren following operand in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return false;
+            }
+            if (previousTokenType == OP_CLOSE_PAREN) {
+                printf("\033[1;31mOpen paren following close paren in math operation (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return false;
+            }
+        }
+        else if (currentTokenType == OP_CLOSE_PAREN) { //close parenthesis
+            if (previousTokenType > 0) {
+                printf("\033[1;31mClose paren following operator (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return false;
+            }
+        }
+        else if (currentTokenType >= OP_BIT_NOT && currentTokenType <= OP_DEREF) { //unary operator
+            if (previousTokenType < 0 || previousTokenType == OP_CLOSE_PAREN) {
+                printf("\033[1;31mUnary operator following operand or close parenthesis (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return false;
+            }
+        }
+        else if (currentTokenType >= OP_MUL) { //binary operator
+            if (previousTokenType > 0 && previousTokenType != OP_CLOSE_PAREN) {
+                printf("\033[1;31mBinary operator following another operator or open parenthesis (isValidMathOp). Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return false;
+            }
+        }
+        if (currentTokenType == -3) { //skip to end of func call
+            current = skipFuncParams(current->nextToken);
+            if (current == NULL) {
+                printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
+                return NULL;
+            }
+            if (current == endTok) break; //shouldn't this line be irrelevant because of for loop condition? (current != endTok)
+        }
+        current = current->nextToken;
+        previousTokenType = currentTokenType;
+    }
+    return true;
+}
+MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //takes in math expression (inclusive) and returns AST
+    if (head == NULL || endTok == NULL || varTable == NULL || funcTable == NULL) {
+        printf("\033[1;31mNull parameter to parseMathOp.\033[0m\n");
+        return NULL;
+    }
+    if (head == endTok) { //check for empty
+        printf("\033[1;31mOne token math operation passed to parseMathOp. Line %d. Value %s.\033[0m\n", head->lineNum, head->value);
+        return NULL;
+    }
+    Token* current = head;
+    while (current != endTok) { //check for tail
+        if (current == NULL) {
+            printf("\033[1;31mHead token doesn't lead to tail in parseMathOp. Line %d.\033[0m\n", head->lineNum);
+            return NULL;
+        }
+        current = current->nextToken;
+    }
+    if (!isValidMathOp(head, endTok, varTable, funcTable)) { //check for valid token sequences
+        printf("\033[1;31mError when validating math operation. Line %d.\033[0m\n", head->lineNum);
+        return NULL;
+    }
+    queueOrStackNode* postfix = buildPostfix(head, endTok, varTable, funcTable); //build postfix (deep copied values from tokens)
+    if (postfix == NULL) {
+        printf("\033[1;31mError building postfix expression. Line %d.\033[0m\n", head->lineNum);
+        return NULL;
+    }
+    printPostfix(postfix); //DEBUG
+
+    MathOpNode* mathOpTree = postfixToTree(postfix); //build binary tree from postfix
+    if (mathOpTree == NULL) {
+        printf("\033[1;31mError building AST from postfix expression. Line %d.\033[0m\n", head->lineNum);
+        return NULL;
+    }
+    
+    //DEBUG
+    ValueNode* temp = malloc(sizeof(ValueNode));
+    if (temp == NULL) {
+        printf("\033[1;31mMalloc error in parseMathOp.\033[0m\n");
+        return NULL;
+    }
+    temp->valueType = VALUE_MATH_OP;
+    temp->value = mathOpTree;
+    printValueNode(temp);
+
+    return mathOpTree;
 }
 
 //MAIN PARSING FUNCTION

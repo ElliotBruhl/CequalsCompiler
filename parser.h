@@ -5,15 +5,15 @@
 #include "funcTable.h"
 #include <stdbool.h>
 
-typedef enum {
+//ENUMS
+typedef enum { //for what type of sub-node an ASTNode contains
     NODE_VAR_DECL,
     NODE_VAR_ASSIGN,
     NODE_FUNC_DECL, 
     NODE_WHILE,
     NODE_IF,
 } NodeType;
-
-typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (oopsies)
+typedef enum { //for all operators (divide by 4 to get precedence (backward))
     I_HAVE_TO_FORCE_THIS_TO_BE_A_SIGNED_TYPE = -1, //this is why -1 >= 0 was true
     NULL_OP = 0,        // error operator
     // Precedence 1 - parentheses (a separator)
@@ -53,61 +53,66 @@ typedef enum { //divide by 4 to get precedence level - PRECEDENCE IS BACKWARDS (
     // Precedence 12 (l->r): 44-47
     OP_OR = 44          // ||
 } OperatorType;
-
-typedef enum {
+typedef enum { //for what type of value a ValueNode contains
     VALUE_OP,       //OperatorType*
     VALUE_NUM,      //long long*
     VALUE_VAR,      //char*
     VALUE_FUNC_RET, //FuncCallNode*
     VALUE_MATH_OP,  //MathOpNode*
 } ValueType;
-typedef struct ValueNode {
+
+//STRUCTS (for data structures)
+typedef struct ValueNode { //container for any type of value
     ValueType valueType;
-    void* value; //should be a unique pointer to avoid double free from tokens
+    void* value; //unique pointer to avoid double free from tokens
 } ValueNode;
-typedef struct FuncCallNode {
+typedef struct queueOrStackNode { //queue/stack for converting to and from postfix
+    ValueNode* value;
+    struct queueOrStackNode* next;
+} queueOrStackNode;
+typedef struct FuncCallNode { //container for function calls
     char* funcName;
     int argCount;
     ValueNode** args;
 } FuncCallNode;
-typedef struct MathOpNode {
+typedef struct MathOpNode { //node in math expression binary tree
     OperatorType opType;
     ValueNode* left; //nullable for unary operators
     ValueNode* right; 
 } MathOpNode;
-
 typedef struct ASTNode ASTNode;
-typedef struct ASTNode {
+typedef struct ASTNode { //linked list of containers for AST nodes (main data structure)
     NodeType nodeType;
     void* subNode;
     ASTNode* next;
     ASTNode* prev;
 } ASTNode;
-typedef struct VarDeclNode {
+typedef struct VarDeclNode { //sub-node for variable declarations
     char* varName;
 } VarDeclNode;
-typedef struct VarAssignNode {
+typedef struct VarAssignNode { //sub-node for variable re-assignments
     char* varName;
     ValueNode* newValue;
 } VarAssignNode;
-typedef struct FuncDeclNode {
+typedef struct FuncDeclNode { //sub-node for function declarations
     char* funcName;
     int argCount;
     char** argNames;
     ASTNode* body;
 } FuncDeclNode;
-typedef struct WhileNode {
+typedef struct WhileNode { //sub-node for while loops
     ValueNode* condition;
     ASTNode* body;
 } WhileNode;
-typedef struct IfNode {
+typedef struct IfNode { //sub-node for if statements
     ValueNode* condition;
     ASTNode* body;
     ASTNode* elseBody; //nullable for no else
 } IfNode;
 
+//FUNCTIONS
 void freeASTNodes(ASTNode* head);
-void printASTs(ASTNode* head);
+void printASTs(ASTNode* head); //DEBUG (temp)
 ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable);
 MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable); //will be private later (testing now)
 
