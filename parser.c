@@ -7,8 +7,9 @@ FuncCallNode* parseFuncArgs(Token* head, VarTable* varTable, FuncTable* funcTabl
 
 //DEBUG FUNCTIONS
 void printValueNode(ValueNode* value) { //DEBUG (temp)
+    printf("Printing ValueNode:\n");
     if (value == NULL) {
-        printf("NULL ValueNode");
+        printf("NULL ValueNode\n");
         return;
     }
     switch (value->valueType) {
@@ -25,7 +26,10 @@ void printValueNode(ValueNode* value) { //DEBUG (temp)
             printf("FUNC: %s ", ((FuncCallNode*)value->value)->funcName);
             break;
         case VALUE_MATH_OP:
-            printf("MathOp: Left Type: %d Right Type: %d OP: %d", ((MathOpNode*)value->value)->left->valueType, ((MathOpNode*)value->value)->right->valueType, ((MathOpNode*)value->value)->opType);
+            if (((MathOpNode*)value->value)->left == NULL)
+                printf("MathOp: Left Type: NULL Right Type: %d OP: %d", ((MathOpNode*)value->value)->right->valueType, ((MathOpNode*)value->value)->opType);
+            else
+                printf("MathOp: Left Type: %d Right Type: %d OP: %d", ((MathOpNode*)value->value)->left->valueType, ((MathOpNode*)value->value)->right->valueType, ((MathOpNode*)value->value)->opType);
             break;
         default:
             printf("Unknown value type in value print.\n");
@@ -34,7 +38,10 @@ void printValueNode(ValueNode* value) { //DEBUG (temp)
 }
 void printPostfix(queueOrStackNode* head) { //DEBUG (temp)
     printf("Printing Postfix:\n");
-    if (head == NULL) return;
+    if (head == NULL) {
+        printf("NULL Postfix\n");
+        return;
+    }
     queueOrStackNode* current = head;
     while (current != NULL) {
         printValueNode(current->value);
@@ -42,7 +49,11 @@ void printPostfix(queueOrStackNode* head) { //DEBUG (temp)
     }
 }
 void printASTs(ASTNode* head) { //DEBUG (temp)
-    if (head == NULL) return;
+    printf("Printing ASTs:\n");
+    if (head == NULL) {
+        printf("NULL AST\n");
+        return;
+    }
     ASTNode* current = head;
     while (current != NULL) {
         switch (current->nodeType) {
@@ -888,28 +899,88 @@ MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTabl
         printf("\033[1;31mError building postfix expression. Line %d.\033[0m\n", head->lineNum);
         return NULL;
     }
-    printPostfix(postfix); //DEBUG
 
     MathOpNode* mathOpTree = postfixToTree(postfix); //build binary tree from postfix
     if (mathOpTree == NULL) {
         printf("\033[1;31mError building AST from postfix expression. Line %d.\033[0m\n", head->lineNum);
         return NULL;
     }
-    
-    //DEBUG
-    ValueNode* temp = malloc(sizeof(ValueNode));
-    if (temp == NULL) {
-        printf("\033[1;31mMalloc error in parseMathOp.\033[0m\n");
-        return NULL;
-    }
-    temp->valueType = VALUE_MATH_OP;
-    temp->value = mathOpTree;
-    printValueNode(temp);
 
     return mathOpTree;
 }
 
 //MAIN PARSING FUNCTION
 ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable) { //takes in tokens and returns AST
-    //...
+    if (head == NULL || varTable == NULL || funcTable == NULL) {
+        printf("\033[1;31mNull parameter to parseTokens.\033[0m\n");
+        return NULL;
+    }
+    ASTNode* prevNode = NULL;
+    for (Token* current = head; current != NULL; current = current->nextToken) {
+        ASTNode* newASTNode = (ASTNode*)malloc(sizeof(ASTNode));
+        if (newASTNode == NULL) {
+            printf("\033[1;31mMalloc error in parseTokens.\033[0m\n");
+            return NULL;
+        }
+        newASTNode->prev = prevNode;
+        newASTNode->next = NULL;
+
+        switch (current->tokenType) {
+            case TOKEN_IDENTIFIER: //start of a var assignment
+                newASTNode->nodeType = NODE_VAR_ASSIGN;
+                newASTNode->subNode = parseVarAssign(current, varTable, funcTable);
+                if (newASTNode->subNode == NULL) {
+                    printf("\033[1;31mError parsing variable assignment. Line %d.\033[0m\n", current->lineNum);
+                    return NULL;
+                }
+                break;
+            case TOKEN_KEYWORD:
+                switch(current->value[0]) {
+                    case 'i': //if statement
+                        newASTNode->nodeType = NODE_IF;
+                        newASTNode->subNode = parseIf(current, varTable, funcTable);
+                        if (newASTNode->subNode == NULL) {
+                            printf("\033[1;31mError parsing if statement. Line %d.\033[0m\n", current->lineNum);
+                            return NULL;
+                        }
+                        break;
+                    case 'w': //while loop
+                        newASTNode->nodeType = NODE_WHILE;
+                        newASTNode->subNode = parseWhile(current, varTable, funcTable);
+                        if (newASTNode->subNode == NULL) {
+                            printf("\033[1;31mError parsing while loop. Line %d.\033[0m\n", current->lineNum);
+                            return NULL;
+                        }
+                        break;
+                    case 'f': //function definition
+                        newASTNode->nodeType = NODE_FUNC_DECL;
+                        newASTNode->subNode = parseFuncDef(current, varTable, funcTable);
+                        if (newASTNode->subNode == NULL) {
+                            printf("\033[1;31mError parsing function definition. Line %d.\033[0m\n", current->lineNum);
+                            return NULL;
+                        }
+                        break;
+                    case 'r': //return statement
+                        //...
+                        break;
+                    case 'c':
+                        //...
+                        break;
+                    case 'b':
+                        //...
+                        break;
+                    case 'e':
+                        //...
+                        break;
+                    default:
+                        printf("\033[1;31mIllegal keyword in parseTokens. Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                }
+            default:
+                printf("\033[1;31mIllegal start of statement. Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                return NULL;
+        }
+        if (prevNode != NULL) prevNode->next = newASTNode;
+        prevNode = newASTNode;
+    }
+    
 }

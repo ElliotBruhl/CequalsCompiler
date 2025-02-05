@@ -1,1 +1,0 @@
-f2(!a) + 1; #parseMathOp on !a causes the problem
