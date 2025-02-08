@@ -12,6 +12,7 @@ typedef enum { //for what type of sub-node an ASTNode contains
     NODE_FUNC_DECL, 
     NODE_WHILE,
     NODE_IF,
+    NODE_RETURN
 } NodeType;
 typedef enum { //for all operators (divide by 4 to get precedence (backward))
     I_HAVE_TO_FORCE_THIS_TO_BE_A_SIGNED_TYPE = -1, //this is why -1 >= 0 was true
@@ -109,11 +110,14 @@ typedef struct IfNode { //sub-node for if statements
     ASTNode* body;
     ASTNode* elseBody; //nullable for no else
 } IfNode;
+typedef struct ReturnNode { //sub-node for return statements
+    ValueNode* returnValue;
+} ReturnNode;
 
 //FUNCTIONS
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head); //DEBUG (temp)
-ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable);
-MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable); //will be private later (testing now)
+ASTNode* parseTokens(Token* head, bool inSubscope, VarTable* varTable, FuncTable* funcTable);
+MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable); //DEBUG (temp)
 
 #endif

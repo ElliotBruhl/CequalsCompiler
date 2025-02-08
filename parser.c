@@ -100,19 +100,29 @@ void freeASTNodes(ASTNode* head) { //TODO
     //...
 }
 //HELPER FUNCTIONS
-Token* skipFuncParams(Token* head) { //takes in first paren and returns matching end paren
-    if (head == NULL || head->value == NULL) {
-        printf("\033[1;31mNull parameter to skipFuncParams.\033[0m\n");
+Token* skipToSemicolon(Token* head) { //pretty self-explanatory
+    if (head == NULL) {
+        printf("\033[1;31mNull parameter to skipToSemicolon.\033[0m\n");
         return NULL;
     }
-    if (head->value[0] != '(') {
-        printf("\033[1;31mBad start token to skipFuncParams.\033[0m\n");
+    for (Token* current = head; current != NULL; current = current->nextToken) {
+        if (current->value[0] == ';') return current;
+    }
+    return NULL;
+}
+Token* findMatchingParen(Token* head, bool parenType) { //takes in first paren and returns matching end paren - parenType is true for ( and false for {
+    if (head == NULL || head->value == NULL) {
+        printf("\033[1;31mNull parameter to findMatchingParen.\033[0m\n");
+        return NULL;
+    }
+    if ((head->value[0] != '(' && parenType) || (head->value[0] != '{' && !parenType)) {
+        printf("\033[1;31mBad start token to findMatchingParen.\033[0m\n");
         return NULL;
     }
     int parens = 1;
     for (Token* current = head->nextToken; current != NULL && parens > 0; current = current->nextToken) {
-        if (current->value[0] == '(') parens++;
-        else if (current->value[0] == ')') parens--;
+        if ((current->value[0] == '(' && parenType) || (current->value[0] == '{' && !parenType)) parens++;
+        else if ((current->value[0] == ')' && parenType) || (current->value[0] == '}' && !parenType)) parens--;
         if (parens == 0) return current;
     }
     return NULL;
@@ -341,7 +351,7 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
                 return NULL;
             }
             if (outQ == NULL) outQ = outQBack;
-            current = skipFuncParams(current->nextToken);
+            current = findMatchingParen(current->nextToken, true);
             if (current == NULL) {
                 printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
                 return NULL;
@@ -608,7 +618,7 @@ int getFuncArgType(Token* head, Token* tail) { //head is first token of arg and 
     }
     if (head->tokenType == TOKEN_IDENTIFIER && head->nextToken->value[0] == '(') {
         //go to end of call to determine if function call or math op that starts with func call
-        Token* endOfCall = skipFuncParams(head->nextToken);
+        Token* endOfCall = findMatchingParen(head->nextToken, true);
         if (endOfCall == NULL) return -1; //error
         if (endOfCall == tail) return 1; //function call
     }
@@ -803,7 +813,7 @@ bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* fu
         return false;
     }
     if (currentTokenType == -3) {//skip to end of func call
-        head = skipFuncParams(head->nextToken);
+        head = findMatchingParen(head->nextToken, true);
         if (head == NULL) {
             printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
             return false;
@@ -861,7 +871,7 @@ bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* fu
             }
         }
         if (currentTokenType == -3) { //skip to end of func call
-            current = skipFuncParams(current->nextToken);
+            current = findMatchingParen(current->nextToken, true);
             if (current == NULL) {
                 printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
                 return NULL;
@@ -908,15 +918,45 @@ MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTabl
 
     return mathOpTree;
 }
-
+//PARSE NODES
+ValueNode* parseValueNode(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) {
+    //...
+}
+VarAssignNode* parseVarAssign(Token* head, VarTable* varTable, FuncTable* funcTable) {
+    //...
+}
+VarDeclNode* parseVarDecl(Token* head, VarTable* varTable, FuncTable* funcTable) {
+    //...
+}
+IfNode* parseIf(Token* head, VarTable* varTable, FuncTable* funcTable) {
+    //...
+}
+WhileNode* parseWhile(Token* head, VarTable* varTable, FuncTable* funcTable) {
+    //...
+}
+FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable) {
+    //...
+}
+ReturnNode* parseReturn(Token* head, VarTable* varTable, FuncTable* funcTable) {
+    //...
+}
 //MAIN PARSING FUNCTION
-ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable) { //takes in tokens and returns AST
+ASTNode* parseTokens(Token* head, bool inSubscope, VarTable* varTable, FuncTable* funcTable) { //takes in token list and returns AST - call recusively for nested scopes
     if (head == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to parseTokens.\033[0m\n");
         return NULL;
     }
+    Token* endTok = NULL; //find out if to parse until end of file or end of subscope
+    if (inSubscope) {
+        endTok = findMatchingParen(head, true);
+        if (endTok == NULL) {
+            printf("\033[1;31mError finding end token in parseTokens.\033[0m\n");
+            return NULL;
+        }
+    }
     ASTNode* prevNode = NULL;
-    for (Token* current = head; current != NULL; current = current->nextToken) {
+    ASTNode* ASTHead = NULL;
+    for (Token* current = head; current != endTok; current = current->nextToken) {
         ASTNode* newASTNode = (ASTNode*)malloc(sizeof(ASTNode));
         if (newASTNode == NULL) {
             printf("\033[1;31mMalloc error in parseTokens.\033[0m\n");
@@ -933,9 +973,27 @@ ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable) { //
                     printf("\033[1;31mError parsing variable assignment. Line %d.\033[0m\n", current->lineNum);
                     return NULL;
                 }
+                current = skipToSemicolon(current);
+                if (current == NULL) {
+                    printf("\033[1;31mError skipping to semicolon in parseTokens.\033[0m\n");
+                    return NULL;
+                }
                 break;
-            case TOKEN_KEYWORD:
+            case TOKEN_KEYWORD: //start of special statement
                 switch(current->value[0]) {
+                    case 'v': //variable declaration
+                        newASTNode->nodeType = NODE_VAR_DECL;
+                        newASTNode->subNode = parseVarDecl(current, varTable, funcTable);
+                        if (newASTNode->subNode == NULL) {
+                            printf("\033[1;31mError parsing variable declaration. Line %d.\033[0m\n", current->lineNum);
+                            return NULL;
+                        }
+                        current = skipToSemicolon(current);
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to semicolon in parseTokens.\033[0m\n");
+                            return NULL;
+                        }
+                        break;
                     case 'i': //if statement
                         newASTNode->nodeType = NODE_IF;
                         newASTNode->subNode = parseIf(current, varTable, funcTable);
@@ -943,12 +1001,39 @@ ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable) { //
                             printf("\033[1;31mError parsing if statement. Line %d.\033[0m\n", current->lineNum);
                             return NULL;
                         }
+                        current = findMatchingParen(current->nextToken, true); //skip the condition
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to end of if statement in parseTokens.\033[0m\n");
+                            return NULL;
+                        }
+                        current = findMatchingParen(current->nextToken, false); //skip the body
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to end of if statement in parseTokens.\033[0m\n");
+                            return NULL;
+                        }
+                        if (current->nextToken != NULL && current->nextToken->tokenType == TOKEN_KEYWORD && current->nextToken->value[0] == 'e') { //has an else statement
+                            current = findMatchingParen(current->nextToken->nextToken, false); //skip the else body
+                            if (current == NULL) {
+                                printf("\033[1;31mError skipping to end of else statement in parseTokens.\033[0m\n");
+                                return NULL;
+                            }
+                        }
                         break;
                     case 'w': //while loop
                         newASTNode->nodeType = NODE_WHILE;
                         newASTNode->subNode = parseWhile(current, varTable, funcTable);
                         if (newASTNode->subNode == NULL) {
                             printf("\033[1;31mError parsing while loop. Line %d.\033[0m\n", current->lineNum);
+                            return NULL;
+                        }
+                        current = findMatchingParen(current->nextToken, true); //skip the condition
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to end of while loop in parseTokens.\033[0m\n");
+                            return NULL;
+                        }
+                        current = findMatchingParen(current->nextToken, false); //skip the body
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to end of while loop in parseTokens.\033[0m\n");
                             return NULL;
                         }
                         break;
@@ -959,18 +1044,29 @@ ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable) { //
                             printf("\033[1;31mError parsing function definition. Line %d.\033[0m\n", current->lineNum);
                             return NULL;
                         }
+                        current = findMatchingParen(current->nextToken, true); //skip the parameter declarations
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to end of function definition in parseTokens.\033[0m\n");
+                            return NULL;
+                        }
+                        current = findMatchingParen(current->nextToken, false); //skip the body
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to end of function definition in parseTokens.\033[0m\n");
+                            return NULL;
+                        }
                         break;
                     case 'r': //return statement
-                        //...
-                        break;
-                    case 'c':
-                        //...
-                        break;
-                    case 'b':
-                        //...
-                        break;
-                    case 'e':
-                        //...
+                        newASTNode->nodeType = NODE_RETURN;
+                        newASTNode->subNode = parseReturn(current, varTable, funcTable);
+                        if (newASTNode->subNode == NULL) {
+                            printf("\033[1;31mError parsing return statement. Line %d.\033[0m\n", current->lineNum);
+                            return NULL;
+                        }
+                        current = skipToSemicolon(current);
+                        if (current == NULL) {
+                            printf("\033[1;31mError skipping to semicolon in parseTokens.\033[0m\n");
+                            return NULL;
+                        }
                         break;
                     default:
                         printf("\033[1;31mIllegal keyword in parseTokens. Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
@@ -979,8 +1075,10 @@ ASTNode* parseTokens(Token* head, VarTable* varTable, FuncTable* funcTable) { //
                 printf("\033[1;31mIllegal start of statement. Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
                 return NULL;
         }
-        if (prevNode != NULL) prevNode->next = newASTNode;
+        //update linked list
+        if (prevNode == NULL) ASTHead = newASTNode;
+        else prevNode->next = newASTNode;
         prevNode = newASTNode;
     }
-    
+    return ASTHead;
 }

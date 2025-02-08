@@ -31,6 +31,7 @@ Token* createToken(int line, TokenType type, char* valStart, int valLen, Token* 
     return newToken;
 }
 void printTokens(Token* head) {
+
     printf("Printing Tokens:\n");
     Token* current = head;
     while (current != NULL) {
@@ -76,8 +77,8 @@ int getOperatorLength(char c, char cNext) {
     }
 }
 int getKeywordLength(char* c) {
-    char* keywords[] = {"var", "func", "return", "while", "continue", "break", "if", "else"};
-    const int KEYWORDS_LEN = 8;
+    char* keywords[] = {"var", "func", "return", "while", "if", "else"};
+    const int KEYWORDS_LEN = 6;
 
     for (int i = 0; i < KEYWORDS_LEN; i++) {
         int j = 0;
@@ -103,7 +104,7 @@ Token* tokenizer(FILE* file) {
     while (fgets(buffer, sizeof(buffer), file) != NULL) { // each line is stored in buffer
 
         if ((strlen(buffer) == MAX_BUFFER_SIZE - 1) && (buffer[MAX_BUFFER_SIZE - 2] != '\n')) { // set limit on line size to prevent bugs on split tokens
-            printf("\033[1;31mError: line %d over length 255 chars\033[0m\n", lineNum);
+            printf("\033[1;31mError: line %d over length %d chars\033[0m\n", lineNum, MAX_BUFFER_SIZE - 1);
             fclose(file);
             return NULL;
         }
