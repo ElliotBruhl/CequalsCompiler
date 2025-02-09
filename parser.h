@@ -118,6 +118,7 @@ typedef struct ReturnNode { //sub-node for return statements
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head); //DEBUG (temp)
 ASTNode* parseTokens(Token* head, bool inSubscope, VarTable* varTable, FuncTable* funcTable);
-MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable); //DEBUG (temp)
+MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable); //Probably needs debugging
+FuncCallNode* parseFuncCall(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs); //Probably needs debugging
 
 #endif
