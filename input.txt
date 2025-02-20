@@ -1,1 +1,27 @@
-var x;
+#test all features of language
+
+func main(y) {
+    var x;
+    x = 1;
+
+    func f(a, b) {
+        return a + b;
+    }
+    x = f(x, x);
+
+    while (x) {
+        x = (8 - 3) / 2;
+    }
+
+    if (x) {
+        x = x + 1;
+    }
+    else {
+        x = x - 1;
+    }
+
+    return 0;
+}
+
+#errors:
+#finding end of parse for non-funcs (change subScope to custom struct)

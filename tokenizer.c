@@ -13,7 +13,7 @@ Token* createToken(int line, TokenType type, char* valStart, int valLen, Token* 
     newToken->lineNum = line;
     newToken->tokenType = type;
 
-    newToken->value = (char*)malloc(valLen);
+    newToken->value = (char*)malloc(valLen + 1);
     if (newToken->value == NULL) {
         printf("\033[1;31mMalloc Failed in createToken\033[0m\n");
         return NULL;

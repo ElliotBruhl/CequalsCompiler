@@ -62,7 +62,8 @@ typedef enum { //for what type of value a ValueNode contains
     VALUE_MATH_OP,  //MathOpNode*
 } ValueType;
 
-//STRUCTS (for data structures)
+//STRUCTS
+    //HELPER STRUCTS
 typedef struct ValueNode { //container for any type of value
     ValueType valueType;
     void* value; //unique pointer to avoid double free from tokens
@@ -81,6 +82,11 @@ typedef struct MathOpNode { //node in math expression binary tree
     ValueNode* left; //nullable for unary operators
     ValueNode* right; 
 } MathOpNode;
+typedef struct ScopeInfo {
+    NodeType* scopeType;
+    void* value;
+} ScopeInfo;
+    //AST STRUCTS
 typedef struct ASTNode ASTNode;
 typedef struct ASTNode { //linked list of containers for AST nodes (main data structure)
     NodeType nodeType;
@@ -117,8 +123,6 @@ typedef struct ReturnNode { //sub-node for return statements
 //FUNCTIONS
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head); //DEBUG (temp)
-ASTNode* parseTokens(Token* head, bool inSubscope, VarTable* varTable, FuncTable* funcTable);
-MathOpNode* parseMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable); //Probably needs debugging
-FuncCallNode* parseFuncCall(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs); //Probably needs debugging
+ASTNode* parseTokens(Token* head, FuncDeclNode* subScope, VarTable* varTable, FuncTable* funcTable);
 
 #endif
