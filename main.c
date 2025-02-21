@@ -2,6 +2,7 @@
 #include "varTable.h"
 #include "funcTable.h"
 #include "parser.h"
+#include "codeGen.h"
 
 int main(int argc, char** argv) {
     //COMPILING
@@ -10,22 +11,24 @@ int main(int argc, char** argv) {
         printf("\033[0;31mFATAL ERROR: invalid number of arguments. Usage: {executable name} {file to compile} {output file} {optional flags}\033[0m\n");
         return -1;
     }
-        //READ FILE
+
+    //READ FILE
     printf("\033[0;34mReading File...1/6\033[0m\n");
     FILE *file = fopen(argv[1], "r");
     if (file == NULL) {
         printf("\033[0;31mFATAL ERROR: failed to read input file\033[0m\n");
         return -1;
     }
-        //TOKENIZE
+
+    //TOKENIZE
     printf("\033[0;34mTokenizing...2/6\033[0m\n");
-    Token *tokens = tokenizer(file);
+    Token *tokens = tokenizer(file); //closes file
     if (tokens == NULL) {
         printf("\033[0;31mFATAL ERROR: tokenizer failed\033[0m\n");
         return -2;
     }
-    printTokens(tokens); //DEBUG (temp)
-        //CREATE SYMBOL TABLES
+
+    //CREATE SYMBOL TABLES
     printf("\033[0;34mCreating Symbol Tables...3/6\033[0m\n");
     VarTable *varTable = createVarTable();
     if (varTable == NULL) {
@@ -37,7 +40,8 @@ int main(int argc, char** argv) {
         printf("\033[0;31mFATAL ERROR: failed to create funcTable\033[0m\n");
         return -4;
     }
-        //PARSE
+
+    //PARSE
     printf("\033[0;34mParsing...4/6\033[0m\n");
     ASTNode *AST = parseTokens(tokens, NULL, varTable, funcTable);
     if (AST == NULL) {
@@ -46,12 +50,23 @@ int main(int argc, char** argv) {
     }
     printASTs(AST); //DEBUG (temp)
     freeTokens(tokens);
-        //CODE GENERATION
+
+    //CODE GENERATION
     printf("\033[0;34mCode Generation...5/6\033[0m\n");
-    //...
-    freeASTNodes(AST);
-        //CLEANUP
+    FILE *output = fopen(argv[2], "w");
+    if (output == NULL) {
+        printf("\033[0;31mFATAL ERROR: failed to open output file\033[0m\n");
+        return -6;
+    }
+    MathOpNode* mathOpTree = (MathOpNode*)(((VarAssignNode*)AST->next->subNode)->newValue->value); //void pointer hell (copilot suggestion)
+    if (!traverseMathOpTree(output, mathOpTree, true, varTable, funcTable)) {
+        printf("\033[0;31mFATAL ERROR: error writing code\033[0m\n");
+        return -6;
+    }
+
+    //CLEANUP
     printf("\033[0;34mCleaning Up...6/6\033[0m\n");
+    freeASTNodes(AST);
     freeVarTable(varTable);
     freeFuncTable(funcTable);
 

@@ -1,7 +1,7 @@
 # Compiler Information
 
-- **Language**: C (version C17 - should be compatible with C99+)
-- **Input**: Custom (currently unnamed) language
+- **Language**: Written in C (version C17 - compatible with C99+)
+- **Input**: C= (Cequals) language (documentation here later)
 - **Output**: x86-64 Assembly (NASM syntax) for Win64
 
 ## How It Works
@@ -20,9 +20,9 @@ The compilation process is broken into three main steps:
 ## How to Use the Compiler (Win64)
 
 1. Download the executable or compile it from the source files
-2. Create a folder with the executable and an input file (`input.txt`)
+2. Create a folder with the executable, an input file ex. "input.txt", and an output file ex. "output.txt"
 3. Write some code in the input file
-4. Run the executable; it will generate an output file named `output.asm`
+4. Run the executable using command: {executable name}.exe {input file name}.txt {output file name}.txt {optional arguments like -useLib}
 5. Assemble the file using NASM: nasm -f win64 -g output.asm -o output.obj
 6. Link the file (must link with the C standard library) using GCC: gcc output.obj -o output.exe -g
 7. Run the output executable.

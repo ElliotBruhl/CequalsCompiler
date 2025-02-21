@@ -50,7 +50,6 @@ void printPostfix(queueOrStackNode* head) { //DEBUG
     }
 }
 void printASTs(ASTNode* head) { //DEBUG
-    printf("Printing ASTs:\n");
     if (head == NULL) {
         printf("NULL AST\n");
         return;
@@ -59,7 +58,8 @@ void printASTs(ASTNode* head) { //DEBUG
     while (current != NULL) {
         switch (current->nodeType) {
             case NODE_VAR_DECL:
-                printf("VarDecl: %s\n", ((VarDeclNode*)current->subNode)->varName);
+                printf("VarDecl: %s", ((VarDeclNode*)current->subNode)->varName);
+                printf("\n");
                 break;
             case NODE_VAR_ASSIGN:
                 printf("VarAssign: %s -> ", ((VarAssignNode*)current->subNode)->varName);
@@ -68,16 +68,27 @@ void printASTs(ASTNode* head) { //DEBUG
                 break;
             case NODE_FUNC_DECL:
                 printf("FuncDecl: %s (%d arg(s))\n", ((FuncDeclNode*)current->subNode)->funcName, ((FuncDeclNode*)current->subNode)->argCount);
+                printf("Function Body:\n");
+                printASTs(((FuncDeclNode*)current->subNode)->body);
+                printf("\n");
                 break;
             case NODE_WHILE:
                 printf("While: ");
                 printValueNode(((WhileNode*)current->subNode)->condition);
+                printf("While Body:\n");
+                printASTs(((WhileNode*)current->subNode)->body);
                 printf("\n");
                 break;
             case NODE_IF:
                 printf("If: ");
                 printValueNode(((IfNode*)current->subNode)->condition);
-                printf(" Has else: %d\n", ((IfNode*)current->subNode)->elseBody != NULL);
+                printf("\nIf Body:\n");
+                printASTs(((IfNode*)current->subNode)->body);
+                if (((IfNode*)current->subNode)->elseBody != NULL) {
+                    printf("\nElse Body:\n");
+                    printASTs(((IfNode*)current->subNode)->elseBody);
+                }
+                printf("\n");
                 break;
             case NODE_RETURN:
                 printf("Return: ");
@@ -196,7 +207,7 @@ Token* findMatchingParen(Token* head, bool parenType) { //takes in first paren a
         return NULL;
     }
     if ((head->value[0] != '(' && parenType) || (head->value[0] != '{' && !parenType)) {
-        printf("\033[1;31mBad start token %s to findMatchingParen.\033[0m\n", head->value);
+        printf("\033[1;31mBad start token %s to findMatchingParen(%d).\033[0m\n", head->value, parenType);
         return NULL;
     }
     int parens = 1;
@@ -1048,7 +1059,14 @@ IfNode* parseIf(Token* head, VarTable* varTable, FuncTable* funcTable) { //state
         printf("\033[1;31mError parsing condition in parseIf.\033[0m\n");
         return NULL;
     }
-    newIfNode->body = parseTokens(conditionEnd->nextToken->nextToken, NULL, varTable, funcTable);
+    ScopeInfo* newScope = (ScopeInfo*)malloc(sizeof(ScopeInfo));
+    if (newScope == NULL) {
+        printf("\033[1;31mMalloc error in parseIf.\033[0m\n");
+        return NULL;
+    }
+    newScope->numScopeVars = 0;
+    newScope->scopeVarNames = NULL;
+    newIfNode->body = parseTokens(conditionEnd->nextToken->nextToken, newScope, varTable, funcTable);
     if (newIfNode->body == NULL) {
         printf("\033[1;31mError parsing body in parseIf.\033[0m\n");
         return NULL;
@@ -1058,8 +1076,15 @@ IfNode* parseIf(Token* head, VarTable* varTable, FuncTable* funcTable) { //state
         printf("\033[1;31mError finding end of body in parseIf.\033[0m\n");
         return NULL;
     }
+    newScope = (ScopeInfo*)malloc(sizeof(ScopeInfo)); //was already freed in parseTokens so it needs reallocation
+    if (newScope == NULL) {
+        printf("\033[1;31mMalloc error in parseIf.\033[0m\n");
+        return NULL;
+    }
+    newScope->numScopeVars = 0;
+    newScope->scopeVarNames = NULL;
     if (conditionEnd->nextToken != NULL && conditionEnd->nextToken->tokenType == TOKEN_KEYWORD && conditionEnd->nextToken->value[0] == 'e') { //has an else statement
-        newIfNode->elseBody = parseTokens(conditionEnd->nextToken->nextToken->nextToken, NULL, varTable, funcTable);
+        newIfNode->elseBody = parseTokens(conditionEnd->nextToken->nextToken->nextToken, newScope, varTable, funcTable);
         if (newIfNode->elseBody == NULL) {
             printf("\033[1;31mError parsing else body in parseIf.\033[0m\n");
             return NULL;
@@ -1093,7 +1118,14 @@ WhileNode* parseWhile(Token* head, VarTable* varTable, FuncTable* funcTable) { /
         printf("\033[1;31mError parsing condition in parseWhile.\033[0m\n");
         return NULL;
     }
-    newWhileNode->body = parseTokens(conditionEnd->nextToken->nextToken, NULL, varTable, funcTable);
+    ScopeInfo* newScope = (ScopeInfo*)malloc(sizeof(ScopeInfo));
+    if (newScope == NULL) {
+        printf("\033[1;31mMalloc error in parseWhile.\033[0m\n");
+        return NULL;
+    }
+    newScope->numScopeVars = 0;
+    newScope->scopeVarNames = NULL;
+    newWhileNode->body = parseTokens(conditionEnd->nextToken->nextToken, newScope, varTable, funcTable);
     if (newWhileNode->body == NULL) {
         printf("\033[1;31mError parsing body in parseWhile.\033[0m\n");
         return NULL;
@@ -1134,8 +1166,11 @@ FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable
         printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
         return NULL;
     }
-    Token* argStart = head->nextToken->nextToken->nextToken; //first argument name
-    for (int i = 0; i < newFuncDeclNode->argCount; i++) { //get the argument names
+    Token* argStart = head->nextToken->nextToken->nextToken;
+    if (newFuncDeclNode->argCount == 0) { //put argStart on { of function body
+        argStart = argStart->nextToken;
+    }
+    for (int i = 0; i < newFuncDeclNode->argCount; i++) { //get the argument names - ends on { of function body
         if (argStart == NULL || argStart->tokenType != TOKEN_IDENTIFIER) {
             printf("\033[1;31mBad argument name in parseFuncDef.\033[0m\n");
             return NULL;
@@ -1157,7 +1192,14 @@ FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable
         printf("\033[1;31mError adding function to table in parseFuncDef.\033[0m\n");
         return NULL;
     }
-    newFuncDeclNode->body = parseTokens(argStart->nextToken, newFuncDeclNode, varTable, funcTable);
+    ScopeInfo* newScope = (ScopeInfo*)malloc(sizeof(ScopeInfo));
+    if (newScope == NULL) {
+        printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
+        return NULL;
+    }
+    newScope->numScopeVars = newFuncDeclNode->argCount;
+    newScope->scopeVarNames = newFuncDeclNode->argNames;
+    newFuncDeclNode->body = parseTokens(argStart->nextToken, newScope, varTable, funcTable);
     if (newFuncDeclNode->body == NULL) {
         printf("\033[1;31mError parsing body in parseFuncDef.\033[0m\n");
         return NULL;
@@ -1186,22 +1228,23 @@ ReturnNode* parseReturn(Token* head, VarTable* varTable, FuncTable* funcTable) {
     return newReturnNode;
 }
 //MAIN PARSING FUNCTION
-ASTNode* parseTokens(Token* head, FuncDeclNode* subScope, VarTable* varTable, FuncTable* funcTable) { //takes in token list and returns AST - call recusively for nested scopes
+ASTNode* parseTokens(Token* head, ScopeInfo* scopeInfo, VarTable* varTable, FuncTable* funcTable) { //takes in token list and returns AST - call recusively for nested scopes
     if (head == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to parseTokens.\033[0m\n");
         return NULL;
     }
     Token* endTok = NULL; //end is end of file if not in subScope
     pushVarScope(varTable);
-    if (subScope != NULL) { 
-        for (int i = 0; i < subScope->argCount; i++) { //push parameters if inside function call
-            pushVarEntry(varTable, subScope->argNames[i]);
-        }
+    if (scopeInfo != NULL) { //not in global scope
         endTok = findMatchingParen(head->prevToken, false); //put end token in correct place
         if (endTok == NULL) {
             printf("\033[1;31mError finding end token in parseTokens.\033[0m\n");
             return NULL;
         }
+        for (int i = 0; i < scopeInfo->numScopeVars; i++) { //push parameters if inside function call
+            pushVarEntry(varTable, scopeInfo->scopeVarNames[i]);
+        }
+        free(scopeInfo); //names are shallow copied and are freed later
     }
     ASTNode* prevNode = NULL;
     ASTNode* ASTHead = NULL;

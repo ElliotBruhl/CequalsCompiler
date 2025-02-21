@@ -83,8 +83,8 @@ typedef struct MathOpNode { //node in math expression binary tree
     ValueNode* right; 
 } MathOpNode;
 typedef struct ScopeInfo {
-    NodeType* scopeType;
-    void* value;
+    int numScopeVars;
+    char** scopeVarNames; //only used for function declarations
 } ScopeInfo;
     //AST STRUCTS
 typedef struct ASTNode ASTNode;
@@ -123,6 +123,6 @@ typedef struct ReturnNode { //sub-node for return statements
 //FUNCTIONS
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head); //DEBUG (temp)
-ASTNode* parseTokens(Token* head, FuncDeclNode* subScope, VarTable* varTable, FuncTable* funcTable);
+ASTNode* parseTokens(Token* head, ScopeInfo* scopeInfo, VarTable* varTable, FuncTable* funcTable);
 
 #endif
