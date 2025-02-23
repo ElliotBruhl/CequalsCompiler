@@ -55,11 +55,11 @@ typedef enum { //for all operators (divide by 4 to get precedence (backward))
     OP_OR = 44          // ||
 } OperatorType;
 typedef enum { //for what type of value a ValueNode contains
-    VALUE_OP,       //OperatorType*
-    VALUE_NUM,      //long long*
-    VALUE_VAR,      //char*
-    VALUE_FUNC_RET, //FuncCallNode*
-    VALUE_MATH_OP,  //MathOpNode*
+    VALUE_OP,           //OperatorType*
+    VALUE_NUM,          //long long*
+    VALUE_VAR,          //VarEntry*
+    VALUE_FUNC_RET,     //FuncCallNode*
+    VALUE_MATH_OP,      //MathOpNode*
 } ValueType;
 
 //STRUCTS
@@ -95,15 +95,14 @@ typedef struct ASTNode { //linked list of containers for AST nodes (main data st
     ASTNode* prev;
 } ASTNode;
 typedef struct VarDeclNode { //sub-node for variable declarations
-    char* varName;
+    VarEntry* varInfo;
 } VarDeclNode;
 typedef struct VarAssignNode { //sub-node for variable re-assignments
-    char* varName;
+    VarEntry* varInfo;
     ValueNode* newValue;
 } VarAssignNode;
 typedef struct FuncDeclNode { //sub-node for function declarations
-    char* funcName;
-    int argCount;
+    FuncEntry* funcInfo;
     char** argNames;
     ASTNode* body;
 } FuncDeclNode;

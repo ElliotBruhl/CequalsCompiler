@@ -4,19 +4,18 @@
 
 typedef struct {
     char* name;
-    int stackOffset; //stack offset for vars (from basePtr in the scope) - first one should be 4, then 8, etc.
+    int stackOffset; //stack offset for vars (from basePtr in the scope) - first one should be 8, then 16, etc.
 } VarEntry;
 
 typedef struct {
     int entryCount;
-    VarEntry* entries;
+    VarEntry** entries;
     int entryCapacity; //dynamic re-sizing (default 10) - doubles when full
-    void* basePtr; //for stack offset calculation (basePtr - stackOffset)
 } VarScope;
 
 typedef struct {
     int scopeCount;
-    VarScope* scopes;
+    VarScope** scopes;
     int scopeCapacity; //dynamic re-sizing (default 10) - doubles when full
 } VarTable;
 

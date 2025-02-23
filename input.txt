@@ -1,3 +1,1 @@
-#make a var expression so that the math op test is valid syntax
-var x;
-x = (1 + 2) * 3;
+#update parser with new varTable/funcTable implementations

@@ -1248,8 +1248,9 @@ ASTNode* parseTokens(Token* head, ScopeInfo* scopeInfo, VarTable* varTable, Func
     }
     ASTNode* prevNode = NULL;
     ASTNode* ASTHead = NULL;
+    ASTNode* newASTNode = NULL;
     for (Token* current = head; current != endTok && current != NULL; current = current->nextToken) {
-        ASTNode* newASTNode = (ASTNode*)malloc(sizeof(ASTNode));
+        newASTNode = (ASTNode*)malloc(sizeof(ASTNode));
         if (newASTNode == NULL) {
             printf("\033[1;31mMalloc error in parseTokens.\033[0m\n");
             return NULL;

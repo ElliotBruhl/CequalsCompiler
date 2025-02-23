@@ -9,7 +9,7 @@ typedef struct {
 
 typedef struct {
     int entryCount;
-    FuncEntry* entries;
+    FuncEntry** entries;
     int entryCapacity; //dynamic re-sizing (default 5) - doubles when full
 } FuncTable;
 

@@ -21,8 +21,8 @@ bool moveValue(FILE* file, ValueNode* value, ValueStatus src, ValueStatus dest, 
                     fprintf(file, "\tmov rcx, %lld\n", *(long long*)value->value);
                 }
                 else if (dest == STACK) {
-                    fprintf(file, "mov rdx, %lld\n", *(long long*)value->value); //mov stack, immediate only supports 32-bit, so include extra step
-                    fprintf(file, "push rdx\n");
+                    fprintf(file, "\tmov rdx, %lld\n", *(long long*)value->value); //mov stack, immediate only supports 32-bit, so include extra step
+                    fprintf(file, "\tpush rdx\n");
                 }
                 else {
                     printf("\033[1;31mInvalid destination status %d in moveValue.\033[0m\n", dest);
@@ -283,7 +283,7 @@ bool traverseMathOpTree(FILE* file, MathOpNode* mathAST, bool isLeft, VarTable* 
             if (mathAST->left->valueType != VALUE_MATH_OP) //simple value -> grab as unprocessed
             if (!moveValue(file, mathAST->left, UNPROCESSED, STACK, varTable, funcTable)) return false; //push left to stack (from UNPROCESSED)
             if (!traverseMathOpTree(file, (MathOpNode*)mathAST->right->value, false, varTable, funcTable)) return false; //recurse right - result to RCX
-            return evaluateMathExpr(file, mathAST, false, STACK, RCX, varTable, funcTable); //evaluate - result to RCX
+            return evaluateMathExpr(file, mathAST, isLeft, STACK, RCX, varTable, funcTable); //evaluate - result to RCX
         }
     }
     else { //left is math op -> recurse left
