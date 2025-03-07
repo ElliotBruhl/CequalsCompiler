@@ -77,17 +77,23 @@ OP_BIT_XOR  ^	xor {dest}, {source}
 
 OP_BIT_OR   |	or {dest}, {source}
 
-OP_AND	    &&	test {a}, {a}               ;for a && b
-                setnz {al}                  ;test a
+OP_AND	    &&	test {a}, {a}                  ;for a && b
+                je {false}                  
                 test {b}, {b}
-                setnz {bl}                  ;test b
-                and {al}, {bl}              ;a & b
-                movzx {value-64}, {value-8} ;make the 8 bit result 64 bit
-                
-OP_OR	    ||	test {a}, {a}               ;for a && b
-                setnz {al}                  ;test a
+                je {false}
+                mov {value}, 1
+                jmp {end}
+            {falseBranch}:
+                xor {value}, {value}
+            {end}:
+
+OP_OR	    ||	test {a}, {a}                 ;for a || b
+                jne {true}
                 test {b}, {b}
-                setnz {bl}                  ;test b
-                or {al}, {bl}               ;a | b
-                movzx {value-64}, {value-8} ;make the 8 bit result 64 bit
+                jne {true}
+                xor {value}, {value}
+                jmp {end}
+            {trueBranch}:
+                mov {value}, 1
+            {end}:
 */

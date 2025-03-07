@@ -249,20 +249,26 @@ bool evaluateMathExpr(FILE* file, MathOpNode* mathOp, bool resultInRAX, ValueSta
         case OP_AND: //&&
             fprintf(file, "\t;logical and (&&)\n");
             fprintf(file, "\ttest rax, rax\n");
-            fprintf(file, "\tsetnz al\n");
+            fprintf(file, "\tje ANDfalse(%p)\n", mathOp);
             fprintf(file, "\ttest rcx, rcx\n");
-            fprintf(file, "\tsetnz cl\n");
-            fprintf(file, "\tand al, cl\n");
-            fprintf(file, "\tmovzx %s, al\n", resultReg);
+            fprintf(file, "\tje ANDfalse(%p)\n", mathOp);
+            fprintf(file, "\tmov %s, 1\n", resultReg);
+            fprintf(file, "\tjmp ANDend(%p)\n", mathOp);
+            fprintf(file, "ANDfalse(%p):\n", mathOp);
+            fprintf(file, "\txor %s, %s\n", resultReg, resultReg);
+            fprintf(file, "ANDend(%p)\n:", mathOp);
             break;
         case OP_OR: //||
             fprintf(file, "\t;logical or (||)\n");
             fprintf(file, "\ttest rax, rax\n");
-            fprintf(file, "\tsetnz al\n");
+            fprintf(file, "\tjne ORtrue(%p)\n", mathOp);
             fprintf(file, "\ttest rcx, rcx\n");
-            fprintf(file, "\tsetnz cl\n");
-            fprintf(file, "\tor al, cl\n");
-            fprintf(file, "\tmovzx %s, al\n", resultReg);
+            fprintf(file, "\tjne ORtrue(%p)\n", mathOp);
+            fprintf(file, "\txor %s, %s\n", resultReg, resultReg);
+            fprintf(file, "\tjmp ORend(%p)\n", mathOp);
+            fprintf(file, "ORtrue(%p):\n", mathOp);
+            fprintf(file, "\tmov %s, 1\n", resultReg);
+            fprintf(file, "ORend(%p)\n:", mathOp);
             break;
         default:
             printf("\033[1;31mInvalid operator %d in evaluateMathExpr.\033[0m\n", mathOp->opType);

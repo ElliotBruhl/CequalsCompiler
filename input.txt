@@ -1,1 +1,2 @@
-#update parser with new varTable/funcTable implementations
+#update parser to no longer use deep copy
+var x = 5;

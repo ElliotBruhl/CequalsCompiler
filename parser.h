@@ -103,7 +103,7 @@ typedef struct VarAssignNode { //sub-node for variable re-assignments
 } VarAssignNode;
 typedef struct FuncDeclNode { //sub-node for function declarations
     FuncEntry* funcInfo;
-    char** argNames;
+    VarEntry** paramList;
     ASTNode* body;
 } FuncDeclNode;
 typedef struct WhileNode { //sub-node for while loops
@@ -122,6 +122,6 @@ typedef struct ReturnNode { //sub-node for return statements
 //FUNCTIONS
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head); //DEBUG (temp)
-ASTNode* parseTokens(Token* head, ScopeInfo* scopeInfo, VarTable* varTable, FuncTable* funcTable);
+ASTNode* parseTokens(Token* head, int scopeData, VarTable* varTable, FuncTable* funcTable);
 
 #endif

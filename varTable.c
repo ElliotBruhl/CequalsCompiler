@@ -56,9 +56,34 @@ bool pushVarScope(VarTable* table) {
     table->scopeCount++;
     return true;
 }
-bool pushVarEntry(VarTable* table, char* name) {
-    if (table == NULL || name == NULL) return false;
+VarEntry* pushVarEntry(VarTable* table, char* name) {
+    if (table == NULL || name == NULL) return NULL;
     if (table->scopeCount == 0) { //no scope to push to 
+        printf("\033[1;31mNo scope to push to in pushEntry.\033[0m\n");
+        return NULL;
+    }
+    VarScope* curScope = table->scopes[table->scopeCount - 1];
+    if (curScope->entryCount == curScope->entryCapacity) { //resize if full
+        curScope->entryCapacity *= RESIZE_FACTOR;;
+        curScope->entries = realloc(curScope->entries, sizeof(VarEntry*) * curScope->entryCapacity);
+        if (curScope->entries == NULL) {
+            printf("\033[1;31mRealloc failed in pushEntry.\033[0m\n");
+            return NULL;
+        }
+    }
+    curScope->entries[curScope->entryCount]->name = strdup(name);
+    if (curScope->entries[curScope->entryCount]->name == NULL) {
+        printf("\033[1;31mStrdup failed in pushEntry.\033[0m\n");
+        return NULL;
+    }
+    //calc offset
+    curScope->entries[curScope->entryCount]->stackOffset = (curScope->entryCount) * 8 + 8;
+    curScope->entryCount++;
+    return curScope->entries[curScope->entryCount - 1];
+}
+bool pushVarEntryFuncParam(VarTable* table, VarEntry* entry) { //for function parameters (entry must be malloced already)
+    if (table == NULL || entry == NULL) return false;
+    if (table->scopeCount == 0) { //no scope to push to
         printf("\033[1;31mNo scope to push to in pushEntry.\033[0m\n");
         return false;
     }
@@ -71,13 +96,7 @@ bool pushVarEntry(VarTable* table, char* name) {
             return false;
         }
     }
-    curScope->entries[curScope->entryCount]->name = strdup(name);
-    if (curScope->entries[curScope->entryCount]->name == NULL) {
-        printf("\033[1;31mStrdup failed in pushEntry.\033[0m\n");
-        return false;
-    }
-    //calc offset
-    curScope->entries[curScope->entryCount]->stackOffset = (table->scopes[table->scopeCount - 1]->entryCount) * 8 + 8;
+    curScope->entries[curScope->entryCount] = entry;
     curScope->entryCount++;
     return true;
 }

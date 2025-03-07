@@ -21,29 +21,29 @@ FuncTable* createFuncTable() {
     }
     return table;
 }
-bool pushFuncEntry(FuncTable* table, char* name, int paramCount) {
-    if (name == NULL || table == NULL) return false;
+FuncEntry* pushFuncEntry(FuncTable* table, char* name, int paramCount) {
+    if (name == NULL || table == NULL) return NULL;
     if (table->entryCount == table->entryCapacity) { //resize if full
         table->entryCapacity *= RESIZE_FACTOR;
         table->entries = realloc(table->entries, sizeof(FuncEntry*) * table->entryCapacity);
         if (table->entries == NULL){
             printf("\033[1;31mRealloc failed in pushEntry.\033[0m\n");
-            return false;
+            return NULL;
         }
     }
     table->entries[table->entryCount] = malloc(sizeof(FuncEntry));
     if (table->entries[table->entryCount] == NULL) {
         printf("\033[1;31mMalloc failed in pushEntry.\033[0m\n");
-        return false;
+        return NULL;
     }
     table->entries[table->entryCount]->name = strdup(name);
     if (table->entries[table->entryCount]->name == NULL) {
         printf("\033[1;31mStrdup failed in pushEntry.\033[0m\n");
-        return false;
+        return NULL;
     }
     table->entries[table->entryCount]->paramCount = paramCount;
     table->entryCount++;
-    return true;
+    return table->entries[table->entryCount - 1];
 }
 FuncEntry* funcLookup(FuncTable* table, char* name, int paramCount) {
     if (name == NULL || table) return NULL;

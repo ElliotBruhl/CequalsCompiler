@@ -21,7 +21,7 @@ void printValueNode(ValueNode* value) { //DEBUG
             printf("NUM: %lld ", *(long long*)value->value);
             break;
         case VALUE_VAR:
-            printf("VAR: %s ", (char*)value->value);
+            printf("VAR: %s ", ((VarEntry*)value->value)->name);
             break;
         case VALUE_FUNC_RET:
             printf("FUNC: %s ", ((FuncCallNode*)value->value)->funcName);
@@ -58,16 +58,16 @@ void printASTs(ASTNode* head) { //DEBUG
     while (current != NULL) {
         switch (current->nodeType) {
             case NODE_VAR_DECL:
-                printf("VarDecl: %s", ((VarDeclNode*)current->subNode)->varName);
+                printf("VarDecl: %s", ((VarDeclNode*)current->subNode)->varInfo->name);
                 printf("\n");
                 break;
             case NODE_VAR_ASSIGN:
-                printf("VarAssign: %s -> ", ((VarAssignNode*)current->subNode)->varName);
+                printf("VarAssign: %s -> ", ((VarAssignNode*)current->subNode)->varInfo->name);
                 printValueNode(((VarAssignNode*)current->subNode)->newValue);
                 printf("\n");
                 break;
             case NODE_FUNC_DECL:
-                printf("FuncDecl: %s (%d arg(s))\n", ((FuncDeclNode*)current->subNode)->funcName, ((FuncDeclNode*)current->subNode)->argCount);
+                printf("FuncDecl: %s (%d arg(s))\n", ((FuncDeclNode*)current->subNode)->funcInfo->name, ((FuncDeclNode*)current->subNode)->funcInfo->paramCount);
                 printf("Function Body:\n");
                 printASTs(((FuncDeclNode*)current->subNode)->body);
                 printf("\n");
@@ -114,17 +114,16 @@ void freeValueNode(ValueNode* head) {
     switch (head->valueType) {
         case VALUE_OP:
         case VALUE_NUM:
-        case VALUE_VAR:
             free(head->value);
             break;
+        case VALUE_VAR:
+            break; //these get freed from their declarations in the AST
         case VALUE_FUNC_RET:
-            if (((FuncCallNode*)head->value)->argCount > 0) {
-                for (int i = 0; i < ((FuncCallNode*)head->value)->argCount; i++) {
-                    freeValueNode(((FuncCallNode*)head->value)->args[i]);
-                }
-                free(((FuncCallNode*)head->value)->args);
-            }
             free(((FuncCallNode*)head->value)->funcName);
+            for (int i = 0; i < ((FuncCallNode*)head->value)->argCount; i++) {
+                freeValueNode(((FuncCallNode*)head->value)->args[i]);
+            }
+            free(((FuncCallNode*)head->value)->args);
             free(head->value);
             break;
         case VALUE_MATH_OP:
@@ -133,6 +132,7 @@ void freeValueNode(ValueNode* head) {
         default:
             printf("Unknown value type in freeValueNode.\n");
     }
+    free(head);
 }
 void freePostfix(queueOrStackNode* head) {
     if (head == NULL) return;
@@ -151,41 +151,38 @@ void freeASTNodes(ASTNode* head) {
         ASTNode* next = current->next;
         switch (current->nodeType) {
             case NODE_VAR_DECL:
-                free(((VarDeclNode*)current->subNode)->varName);
-                free(current->subNode);
+                free(((VarDeclNode*)current->subNode)->varInfo->name);
+                free(((VarDeclNode*)current->subNode)->varInfo);
                 break;
-            case NODE_VAR_ASSIGN:
-                free(((VarAssignNode*)current->subNode)->varName);
+            case NODE_VAR_ASSIGN: //varInfo freed in declaration of var
                 freeValueNode(((VarAssignNode*)current->subNode)->newValue);
-                free(current->subNode);
                 break;
             case NODE_FUNC_DECL:
-                free(((FuncDeclNode*)current->subNode)->funcName);
-                for (int i = 0; i < ((FuncDeclNode*)current->subNode)->argCount; i++) {
-                    free(((FuncDeclNode*)current->subNode)->argNames[i]);
+                free(((FuncDeclNode*)current->subNode)->funcInfo->name);
+                for (int i = 0; i < ((FuncDeclNode*)current->subNode)->funcInfo->paramCount; i++) {
+                    free(((FuncDeclNode*)current->subNode)->paramList[i]->name);
+                    free(((FuncDeclNode*)current->subNode)->paramList[i]);
                 }
-                free(((FuncDeclNode*)current->subNode)->argNames);
+                free(((FuncDeclNode*)current->subNode)->funcInfo);
+                free(((FuncDeclNode*)current->subNode)->paramList);
                 freeASTNodes(((FuncDeclNode*)current->subNode)->body);
-                free(current->subNode);
                 break;
             case NODE_WHILE:
                 freeValueNode(((WhileNode*)current->subNode)->condition);
                 freeASTNodes(((WhileNode*)current->subNode)->body);
-                free(current->subNode);
                 break;
             case NODE_IF:
                 freeValueNode(((IfNode*)current->subNode)->condition);
                 freeASTNodes(((IfNode*)current->subNode)->body);
                 freeASTNodes(((IfNode*)current->subNode)->elseBody);
-                free(current->subNode);
                 break;
             case NODE_RETURN:
                 freeValueNode(((ReturnNode*)current->subNode)->returnValue);
-                free(current->subNode);
                 break;
             default:
                 printf("Unknown node type in AST free.\n");
         }
+        free(current->subNode);
         free(current);
         current = next;
     }
@@ -251,56 +248,60 @@ OperatorType getOperatorType(Token* token, VarTable* varTable, FuncTable* funcTa
             if (token->nextToken->value[0] == '(') { //func
                 if (funcLookup(funcTable, token->value, numParams(token->nextToken)) != NULL) //is func defined?
                     return -3;
-                else {
-                    printf("\033[1;31mUndefined function in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
-                    return 0;
-                }
+                printf("\033[1;31mUndefined function in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
+                return 0;
             }
             else { //var
                 if (varLookup(varTable, token->value) != NULL) //is var defined?
                     return -2;
-                else {
-                    printf("\033[1;31mUndefined variable in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
-                    return 0;  
-                }
+                printf("\033[1;31mUndefined variable in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
+                return 0;
             }
         case 1: //number
             return -1;
         case 2: //operator
             switch (token->value[0]) {
                 case '=': 
-                    if (token->value[1] == '=') return OP_EQU; // "=="
-                    else {
-                        printf("\033[1;31mInvalid operator = in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
-                        return 0; // "=" (error)
-                    }
+                    if (token->value[1] == '=') 
+                        return OP_EQU; // "=="
+                    printf("\033[1;31mInvalid operator = in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
+                    return 0; // "=" (error)
                 case '~': return OP_BIT_NOT;
                 case '!': 
-                    if (token->value[1] == '=') return OP_NEQ; // "!="
-                    else return OP_NOT; // "!"
+                    if (token->value[1] == '=')
+                        return OP_NEQ; // "!="
+                    return OP_NOT; // "!"
                 case '&': 
-                    if (token->value[1] == '&') return OP_AND; // "&&"
-                    if (token->value[1] == ' ') return OP_BIT_AND; // "& " (with a space)
-                    else return OP_REF; // "&"
+                    if (token->value[1] == '&') 
+                        return OP_AND; // "&&"
+                    if (token->value[1] == ' ') 
+                        return OP_BIT_AND; // "& " (with a space)
+                    return OP_REF; // "&"
                 case '*':
-                    if (token->value[1] == ' ') return OP_MUL; // "* " (with a space)
-                    else return OP_DEREF; // "*"
+                    if (token->value[1] == ' ') 
+                        return OP_MUL; // "* " (with a space)
+                    return OP_DEREF; // "*"
                 case '/': return OP_DIV;
                 case '%': return OP_MOD;
                 case '+': return OP_ADD;
                 case '-': return OP_SUB;
                 case '<':
-                    if (token->value[1] == '<') return OP_BIT_L; // "<<"
-                    if (token->value[1] == '=') return OP_LTE; // "<="
-                    else return OP_LT; // "<"
+                    if (token->value[1] == '<') 
+                        return OP_BIT_L; // "<<"
+                    if (token->value[1] == '=') 
+                        return OP_LTE; // "<="
+                    return OP_LT; // "<"
                 case '>':
-                    if (token->value[1] == '>') return OP_BIT_R; // ">>"
-                    if (token->value[1] == '=') return OP_GTE; // ">="
-                    else return OP_GT; // ">"
+                    if (token->value[1] == '>') 
+                        return OP_BIT_R; // ">>"
+                    if (token->value[1] == '=') 
+                        return OP_GTE; // ">="
+                    return OP_GT; // ">"
                 case '^': return OP_BIT_XOR;
                 case '|': 
-                    if (token->value[1] == '|') return OP_OR; // "||"
-                    else return OP_BIT_OR; // "|"
+                    if (token->value[1] == '|') 
+                        return OP_OR; // "||"
+                    return OP_BIT_OR; // "|"
                 default: 
                     printf("\033[1;31mUnknown operator in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
                     return 0; //unknown operator (error)
@@ -309,8 +310,10 @@ OperatorType getOperatorType(Token* token, VarTable* varTable, FuncTable* funcTa
             printf("\033[1;31mKeyword in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
             return 0; //keyword (error)
         case 4:
-            if (token->value[0] == '(') return OP_OPEN_PAREN;
-            if (token->value[0] == ')') return OP_CLOSE_PAREN;
+            if (token->value[0] == '(') 
+                return OP_OPEN_PAREN;
+            if (token->value[0] == ')') 
+                return OP_CLOSE_PAREN;
             printf("\033[1;31mBad seperator in math operation. Line %d. Value %s.\033[0m\n", token->lineNum, token->value);
             return 0; //other seperator (error)
         default:
@@ -373,196 +376,204 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
 
     for (Token* current = head; current != endTok->nextToken && current != NULL; current = current->nextToken) {
         OperatorType opType = getOperatorType(current, varTable, funcTable);
-        if (opType == 0) return NULL; //error
-        if (opType == -1) { //number -- add to ouput queue
-            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
-            if (newValNode == NULL) {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            newValNode->valueType = VALUE_NUM;
-            newValNode->value = malloc(sizeof(long long));
-            if (newValNode->value != NULL) {
-                *(long long*)newValNode->value = atoll(current->value);
-            }
-            else {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            outQBack = enqueue(outQBack, newValNode);
-            if (outQBack == NULL) {
-                printf("\033[1;31mEnqueue Failed.\033[0m\n");
-                return NULL;
-            }
-            if (outQ == NULL) outQ = outQBack;
-        }
-        else if (opType == -2) {//var -- add to output queue
-            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
-            if (newValNode == NULL) {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            newValNode->valueType = VALUE_VAR;
-            newValNode->value = malloc(strlen(current->value) + 1);
-            if (newValNode->value != NULL) {
-                strcpy((char*)newValNode->value, current->value);
-            }
-            else {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            outQBack = enqueue(outQBack, newValNode);
-            if (outQBack == NULL) {
-                printf("\033[1;31mEnqueue Failed.\033[0m\n");
-                return NULL;
-            }
-            if (outQ == NULL) outQ = outQBack;
-        }
-        else if (opType == -3) { //func -- add to output queue and skip to end of func call
-            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
-            if (newValNode == NULL) {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            int params = numParams(current->nextToken);
-            if (params == -1) {
-                printf("\033[1;31mInvalid function call in buildPostfix from numParams. Line %d.\033[0m\n", current->lineNum);
-                return NULL;
-            }
-            newValNode->valueType = VALUE_FUNC_RET;
-            if (params == 0) { //create the function call node here
-                newValNode->value = (FuncCallNode*)malloc(sizeof(FuncCallNode));
-                if (newValNode->value == NULL) {
+        switch (opType) {
+            case 0: //error
+                return NULL; 
+            case -1: { //number
+                ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+                if (newValNode == NULL) {
                     printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
                     return NULL;
                 }
-                ((FuncCallNode*)newValNode->value)->funcName = malloc(strlen(current->value) + 1);
-                if (((FuncCallNode*)newValNode->value)->funcName == NULL) {
+                newValNode->valueType = VALUE_NUM;
+                newValNode->value = malloc(sizeof(long long));
+                if (newValNode->value != NULL) {
+                    *(long long*)newValNode->value = atoll(current->value);
+                }
+                else {
                     printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
                     return NULL;
                 }
-                strcpy(((FuncCallNode*)newValNode->value)->funcName, current->value);
-                ((FuncCallNode*)newValNode->value)->argCount = 0;
-                ((FuncCallNode*)newValNode->value)->args = NULL;
-            }
-            else { //parse the function call with helper function
-                newValNode->value = parseFuncCall(current->nextToken, varTable, funcTable, params);
-                if (newValNode->value == NULL) {
-                    printf("\033[1;31mparseFuncCall failed on function call in line %d.\033[0m\n", current->lineNum);
-                    return NULL;
-                }
-            }
-            outQBack = enqueue(outQBack, newValNode);
-            if (outQBack == NULL) {
-                printf("\033[1;31mEnqueue Failed.\033[0m\n");
-                return NULL;
-            }
-            if (outQ == NULL) outQ = outQBack;
-            current = findMatchingParen(current->nextToken, true);
-            if (current == NULL) {
-                printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-        }
-        else if (opType == OP_OPEN_PAREN) { //push onto stack
-            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
-            if (newValNode == NULL) {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            newValNode->valueType = VALUE_OP;
-            newValNode->value = malloc(sizeof(OperatorType));
-            if (newValNode->value != NULL) {
-                *(OperatorType*)newValNode->value = opType;
-            }
-            else {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            opStack = push(opStack, newValNode);
-            if (opStack == NULL) {
-                printf("\033[1;31mPush failed.\033[0m\n");
-                return NULL;
-            }
-        }
-        else if (opType == OP_CLOSE_PAREN) { //pop stack until open paren
-            if (opStack == NULL) {
-                printf("\033[1;31mMismatched parentheses in math operation. Line %d.\033[0m\n", current->lineNum);
-                return NULL;
-            }
-            while (*(OperatorType*)opStack->value->value != OP_OPEN_PAREN) {
-                outQBack = enqueue(outQBack, opStack->value);
+                outQBack = enqueue(outQBack, newValNode);
                 if (outQBack == NULL) {
                     printf("\033[1;31mEnqueue Failed.\033[0m\n");
                     return NULL;
                 }
                 if (outQ == NULL) outQ = outQBack;
-                opStack = dequeue(opStack);
+                break;
+            }
+            case -2: { //var
+                ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+                if (newValNode == NULL) {
+                    printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
+                newValNode->valueType = VALUE_VAR;
+                newValNode->value = varLookup(varTable, current->value);
+                if (newValNode->value == NULL) {
+                    printf("\033[1;31mUndefined variable in math operation. Line %d. Value %s.\033[0m\n", current->lineNum, current->value);
+                    return NULL;
+                }
+                outQBack = enqueue(outQBack, newValNode);
+                if (outQBack == NULL) {
+                    printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                    return NULL;
+                }
+                if (outQ == NULL) outQ = outQBack;
+                break;
+            }
+            case -3: { //func
+                ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+                if (newValNode == NULL) {
+                    printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
+                int params = numParams(current->nextToken);
+                if (params == -1) {
+                    printf("\033[1;31mInvalid function call in buildPostfix from numParams. Line %d.\033[0m\n", current->lineNum);
+                    return NULL;
+                }
+                newValNode->valueType = VALUE_FUNC_RET;
+                if (params == 0) { //create the function call node here
+                    newValNode->value = (FuncCallNode*)malloc(sizeof(FuncCallNode));
+                    if (newValNode->value == NULL) {
+                        printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                        return NULL;
+                    }
+                    ((FuncCallNode*)newValNode->value)->funcName = malloc(strlen(current->value) + 1);
+                    if (((FuncCallNode*)newValNode->value)->funcName == NULL) {
+                        printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                        return NULL;
+                    }
+                    strcpy(((FuncCallNode*)newValNode->value)->funcName, current->value);
+                    ((FuncCallNode*)newValNode->value)->argCount = 0;
+                    ((FuncCallNode*)newValNode->value)->args = NULL;
+                }
+                else { //parse the function call with helper function
+                    newValNode->value = parseFuncCall(current->nextToken, varTable, funcTable, params);
+                    if (newValNode->value == NULL) {
+                        printf("\033[1;31mparseFuncCall failed on function call in line %d.\033[0m\n", current->lineNum);
+                        return NULL;
+                    }
+                }
+                outQBack = enqueue(outQBack, newValNode);
+                if (outQBack == NULL) {
+                    printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                    return NULL;
+                }
+                if (outQ == NULL) outQ = outQBack;
+                current = findMatchingParen(current->nextToken, true);
+                if (current == NULL) {
+                    printf("\033[1;31mError skipping function parameters in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
+                break;
+            }
+            case OP_OPEN_PAREN: {
+                ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+                if (newValNode == NULL) {
+                    printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
+                newValNode->valueType = VALUE_OP;
+                newValNode->value = malloc(sizeof(OperatorType));
+                if (newValNode->value != NULL) {
+                    *(OperatorType*)newValNode->value = opType;
+                }
+                else {
+                    printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                    return NULL;
+                }
+                opStack = push(opStack, newValNode);
+                if (opStack == NULL) {
+                    printf("\033[1;31mPush failed.\033[0m\n");
+                    return NULL;
+                }
+                break;
+            }
+            case OP_CLOSE_PAREN: {
                 if (opStack == NULL) {
                     printf("\033[1;31mMismatched parentheses in math operation. Line %d.\033[0m\n", current->lineNum);
                     return NULL;
                 }
-            }
-            opStack = dequeue(opStack); //pop open paren
-        }
-        else if (opType/4 == 1) { //unary op (r->l) -- push onto stack (in correct order)
-            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 != 0 && *(OperatorType*)opStack->value->value/4 < opType/4) {
-                outQBack = enqueue(outQBack, opStack->value);
-                if (outQBack == NULL) {
-                    printf("\033[1;31mEnqueue Failed.\033[0m\n");
-                    return NULL;
+                while (*(OperatorType*)opStack->value->value != OP_OPEN_PAREN) {
+                    outQBack = enqueue(outQBack, opStack->value);
+                    if (outQBack == NULL) {
+                        printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                        return NULL;
+                    }
+                    if (outQ == NULL) outQ = outQBack;
+                    opStack = dequeue(opStack);
+                    if (opStack == NULL) {
+                        printf("\033[1;31mMismatched parentheses in math operation. Line %d.\033[0m\n", current->lineNum);
+                        return NULL;
+                    }
                 }
-                if (outQ == NULL) outQ = outQBack;
-                opStack = dequeue(opStack);
+                opStack = dequeue(opStack); //pop open paren
+                break;
             }
-            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
-            if (newValNode == NULL) {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            newValNode->valueType = VALUE_OP;
-            newValNode->value = malloc(sizeof(OperatorType));
-            if (newValNode->value != NULL) {
-                *(OperatorType*)newValNode->value = opType;
-            }
-            else {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            opStack = push(opStack, newValNode);
-            if (opStack == NULL) {
-                printf("\033[1;31mPush failed.\033[0m\n");
-                return NULL;
-            }
-        }
-        else { //binary op (l->r) -- push onto stack (in correct order)
-            while (opStack != NULL && *(OperatorType*)opStack->value->value/4 != 0 && *(OperatorType*)opStack->value->value/4 <= opType/4) {
-                outQBack = enqueue(outQBack, opStack->value);
-                if (outQBack == NULL) {
-                    printf("\033[1;31mEnqueue Failed.\033[0m\n");
-                    return NULL;
+            default: { //operator
+                if (opType/4 == 1) { //unary op
+                    while (opStack != NULL && *(OperatorType*)opStack->value->value/4 != 0 && *(OperatorType*)opStack->value->value/4 < opType/4) {
+                        outQBack = enqueue(outQBack, opStack->value);
+                        if (outQBack == NULL) {
+                            printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                            return NULL;
+                        }
+                        if (outQ == NULL) outQ = outQBack;
+                        opStack = dequeue(opStack);
+                    }
+                    ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+                    if (newValNode == NULL) {
+                        printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                        return NULL;
+                    }
+                    newValNode->valueType = VALUE_OP;
+                    newValNode->value = malloc(sizeof(OperatorType));
+                    if (newValNode->value != NULL) {
+                        *(OperatorType*)newValNode->value = opType;
+                    }
+                    else {
+                        printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                        return NULL;
+                    }
+                    opStack = push(opStack, newValNode);
+                    if (opStack == NULL) {
+                        printf("\033[1;31mPush failed.\033[0m\n");
+                        return NULL;
+                    }
                 }
-                if (outQ == NULL) outQ = outQBack;
-                opStack = dequeue(opStack);
-            }
-            ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
-            if (newValNode == NULL) {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            newValNode->valueType = VALUE_OP;
-            newValNode->value = malloc(sizeof(OperatorType));
-            if (newValNode->value != NULL) {
-                *(OperatorType*)newValNode->value = opType;
-            }
-            else {
-                printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
-                return NULL;
-            }
-            opStack = push(opStack, newValNode);
-            if (opStack == NULL) {
-                printf("\033[1;31mPush failed.\033[0m\n");
-                return NULL;
+                else { //binary op
+                    while (opStack != NULL && *(OperatorType*)opStack->value->value/4 != 0 && *(OperatorType*)opStack->value->value/4 <= opType/4) {
+                        outQBack = enqueue(outQBack, opStack->value);
+                        if (outQBack == NULL) {
+                            printf("\033[1;31mEnqueue Failed.\033[0m\n");
+                            return NULL;
+                        }
+                        if (outQ == NULL) outQ = outQBack;
+                        opStack = dequeue(opStack);
+                    }
+                    ValueNode* newValNode = (ValueNode*)malloc(sizeof(ValueNode));
+                    if (newValNode == NULL) {
+                        printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                        return NULL;
+                    }
+                    newValNode->valueType = VALUE_OP;
+                    newValNode->value = malloc(sizeof(OperatorType));
+                    if (newValNode->value != NULL) {
+                        *(OperatorType*)newValNode->value = opType;
+                    }
+                    else {
+                        printf("\033[1;31mMalloc error in buildPostfix.\033[0m\n");
+                        return NULL;
+                    }
+                    opStack = push(opStack, newValNode);
+                    if (opStack == NULL) {
+                        printf("\033[1;31mPush failed.\033[0m\n");
+                        return NULL;
+                    }
+                }
+                break;
             }
         }
     }
@@ -602,13 +613,8 @@ ValueNode* deepCopyValueNode(ValueNode* old) {
             }
             *(long long*)new->value = *(long long*)old->value;
             break;
-        case VALUE_VAR:
-            new->value = malloc(strlen((char*)old->value) + 1);
-            if (new->value == NULL) {
-                printf("\033[1;31mMalloc error in deepCopyValueNode.\033[0m\n");
-                return NULL;
-            }
-            strcpy((char*)new->value, (char*)old->value);
+        case VALUE_VAR: //don't need to deep copy this
+            new->value = old->value;
             break;
         case VALUE_FUNC_RET:
             new->value = malloc(sizeof(FuncCallNode));
@@ -701,7 +707,7 @@ MathOpNode* postfixToTree(queueOrStackNode* head) { //takes in postfix expressio
                 break;
             case VALUE_MATH_OP:
                 printf("\033[1;31mMathOpNode in postfixToTree.\033[0m\n");
-                return NULL; //shouldn't be here
+                return NULL;
         }
     }
     if (nodeStack == NULL || nodeStack->next != NULL) { //must be only one node left
@@ -714,7 +720,6 @@ MathOpNode* postfixToTree(queueOrStackNode* head) { //takes in postfix expressio
     }
 
     freePostfix(head);
-
     return nodeStack->value->value;
 }
     //VALIDATION/MAIN FUNCTIONS
@@ -935,17 +940,12 @@ ValueNode* parseValueNode(Token* head, Token* endTok, VarTable* varTable, FuncTa
                 *(long long*)newValNode->value = atoll(head->value);
             }
             else if (head->tokenType == TOKEN_IDENTIFIER) { //variable
-                if (varLookup(varTable, head->value) == NULL) {
+                newValNode->valueType = VALUE_VAR;
+                newValNode->value = varLookup(varTable, head->value);
+                if (newValNode->value == NULL) {
                     printf("\033[1;31mUndefined variable in parseValueNode.\033[0m\n");
                     return NULL;
                 }
-                newValNode->valueType = VALUE_VAR;
-                newValNode->value = malloc(strlen(head->value) + 1);
-                if (newValNode->value == NULL) {
-                    printf("\033[1;31mMalloc error in parseValueNode.\033[0m\n");
-                    return NULL;
-                }
-                strcpy((char*)newValNode->value, head->value);
             }
             else {
                 printf("\033[1;31mBad token type in parseValueNode.\033[0m\n");
@@ -992,12 +992,11 @@ VarAssignNode* parseVarAssign(Token* head, VarTable* varTable, FuncTable* funcTa
         printf("\033[1;31mMalloc error in parseVarAssign.\033[0m\n");
         return NULL;
     }
-    newVarAssignNode->varName = malloc(strlen(head->value) + 1);
-    if (newVarAssignNode->varName == NULL) {
-        printf("\033[1;31mMalloc error in parseVarAssign.\033[0m\n");
+    newVarAssignNode->varInfo = varLookup(varTable, head->value);
+    if (newVarAssignNode->varInfo == NULL) {
+        printf("\033[1;31mUndefined variable in parseVarAssign.\033[0m\n");
         return NULL;
     }
-    strcpy(newVarAssignNode->varName, head->value);
     newVarAssignNode->newValue = parseValueNode(head->nextToken->nextToken, skipToSeperator(head, true)->prevToken, varTable, funcTable);
     if (newVarAssignNode->newValue == NULL) {
         printf("\033[1;31mError parsing value in parseVarAssign.\033[0m\n");
@@ -1023,13 +1022,8 @@ VarDeclNode* parseVarDecl(Token* head, VarTable* varTable) { //statement starts 
         printf("\033[1;31mMalloc error in parseVarDecl.\033[0m\n");
         return NULL;
     }
-    newVarDeclNode->varName = malloc(strlen(head->nextToken->value) + 1);
-    if (newVarDeclNode->varName == NULL) {
-        printf("\033[1;31mMalloc error in parseVarDecl.\033[0m\n");
-        return NULL;
-    }
-    strcpy(newVarDeclNode->varName, head->nextToken->value);
-    if (!pushVarEntry(varTable, newVarDeclNode->varName)) {
+    newVarDeclNode->varInfo = pushVarEntry(varTable, head->nextToken->value);
+    if (newVarDeclNode->varInfo == NULL) {
         printf("\033[1;31mError adding variable to table in parseVarDecl.\033[0m\n");
         return NULL;
     }
@@ -1059,14 +1053,7 @@ IfNode* parseIf(Token* head, VarTable* varTable, FuncTable* funcTable) { //state
         printf("\033[1;31mError parsing condition in parseIf.\033[0m\n");
         return NULL;
     }
-    ScopeInfo* newScope = (ScopeInfo*)malloc(sizeof(ScopeInfo));
-    if (newScope == NULL) {
-        printf("\033[1;31mMalloc error in parseIf.\033[0m\n");
-        return NULL;
-    }
-    newScope->numScopeVars = 0;
-    newScope->scopeVarNames = NULL;
-    newIfNode->body = parseTokens(conditionEnd->nextToken->nextToken, newScope, varTable, funcTable);
+    newIfNode->body = parseTokens(conditionEnd->nextToken->nextToken, 1, varTable, funcTable);
     if (newIfNode->body == NULL) {
         printf("\033[1;31mError parsing body in parseIf.\033[0m\n");
         return NULL;
@@ -1076,15 +1063,8 @@ IfNode* parseIf(Token* head, VarTable* varTable, FuncTable* funcTable) { //state
         printf("\033[1;31mError finding end of body in parseIf.\033[0m\n");
         return NULL;
     }
-    newScope = (ScopeInfo*)malloc(sizeof(ScopeInfo)); //was already freed in parseTokens so it needs reallocation
-    if (newScope == NULL) {
-        printf("\033[1;31mMalloc error in parseIf.\033[0m\n");
-        return NULL;
-    }
-    newScope->numScopeVars = 0;
-    newScope->scopeVarNames = NULL;
     if (conditionEnd->nextToken != NULL && conditionEnd->nextToken->tokenType == TOKEN_KEYWORD && conditionEnd->nextToken->value[0] == 'e') { //has an else statement
-        newIfNode->elseBody = parseTokens(conditionEnd->nextToken->nextToken->nextToken, newScope, varTable, funcTable);
+        newIfNode->elseBody = parseTokens(conditionEnd->nextToken->nextToken->nextToken, 1, varTable, funcTable);
         if (newIfNode->elseBody == NULL) {
             printf("\033[1;31mError parsing else body in parseIf.\033[0m\n");
             return NULL;
@@ -1150,63 +1130,62 @@ FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable
         printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
         return NULL;
     }
-    newFuncDeclNode->funcName = malloc(strlen(head->nextToken->value) + 1);
-    if (newFuncDeclNode->funcName == NULL) {
-        printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
-        return NULL;
-    }
-    strcpy(newFuncDeclNode->funcName, head->nextToken->value);
-    newFuncDeclNode->argCount = numParams(head->nextToken->nextToken);
-    if (newFuncDeclNode->argCount < 0) {
+    int params = numParams(head->nextToken->nextToken);
+    if (params == -1) {
         printf("\033[1;31mError counting function parameters in parseFuncDef.\033[0m\n");
         return NULL;
     }
-    newFuncDeclNode->argNames = (char**)malloc(newFuncDeclNode->argCount * sizeof(char*));
-    if (newFuncDeclNode->argNames == NULL) {
-        printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
-        return NULL;
-    }
-    Token* argStart = head->nextToken->nextToken->nextToken;
-    if (newFuncDeclNode->argCount == 0) { //put argStart on { of function body
-        argStart = argStart->nextToken;
-    }
-    for (int i = 0; i < newFuncDeclNode->argCount; i++) { //get the argument names - ends on { of function body
-        if (argStart == NULL || argStart->tokenType != TOKEN_IDENTIFIER) {
-            printf("\033[1;31mBad argument name in parseFuncDef.\033[0m\n");
-            return NULL;
-        }
-        newFuncDeclNode->argNames[i] = malloc(strlen(argStart->value) + 1);
-        if (newFuncDeclNode->argNames[i] == NULL) {
-            printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
-            return NULL;
-        }
-        strcpy(newFuncDeclNode->argNames[i], argStart->value);
-        argStart = argStart->nextToken;
-        if (argStart == NULL || (argStart->value[0] != ',' && argStart->value[0] != ')')) {
-            printf("\033[1;31mBad argument seperator in parseFuncDef.\033[0m\n");
-            return NULL;
-        }
-        argStart = argStart->nextToken;
-    }
-    if(!pushFuncEntry(funcTable, newFuncDeclNode->funcName, newFuncDeclNode->argCount)) {
+    newFuncDeclNode->funcInfo = pushFuncEntry(funcTable, head->nextToken->value, params);
+    if (newFuncDeclNode->funcInfo == NULL) {
         printf("\033[1;31mError adding function to table in parseFuncDef.\033[0m\n");
         return NULL;
     }
-    ScopeInfo* newScope = (ScopeInfo*)malloc(sizeof(ScopeInfo));
-    if (newScope == NULL) {
-        printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
-        return NULL;
+    if (params == 0) { //no parameters - don't need to push scope
+        newFuncDeclNode->paramList = NULL;
+        newFuncDeclNode->body = parseTokens(head->nextToken->nextToken->nextToken->nextToken->nextToken, 1, varTable, funcTable);
+        if (newFuncDeclNode->body == NULL) {
+            printf("\033[1;31mError parsing body in parseFuncDef.\033[0m\n");
+            return NULL;
+        }
     }
-    newScope->numScopeVars = newFuncDeclNode->argCount;
-    newScope->scopeVarNames = newFuncDeclNode->argNames;
-    newFuncDeclNode->body = parseTokens(argStart->nextToken, newScope, varTable, funcTable);
-    if (newFuncDeclNode->body == NULL) {
-        printf("\033[1;31mError parsing body in parseFuncDef.\033[0m\n");
-        return NULL;
+    else { //parameters - push scope and add paramters to table
+        newFuncDeclNode->paramList = (VarEntry**)malloc(params * sizeof(VarEntry*));
+        if (newFuncDeclNode->paramList == NULL) {
+            printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
+            return NULL;
+        }
+        if (pushVarScope(varTable) == false) {
+            printf("\033[1;31mError pushing scope in parseFuncDef.\033[0m\n");
+            return NULL;
+        }
+        Token* argStart = head->nextToken->nextToken->nextToken;
+        for (int i = 0; i < params; i++) { //get the argument names - ends on { of function body
+            if (argStart == NULL || argStart->tokenType != TOKEN_IDENTIFIER) {
+                printf("\033[1;31mBad argument name in parseFuncDef.\033[0m\n");
+                return NULL;
+            }
+            newFuncDeclNode->paramList[i] = pushVarEntry(varTable, argStart->value);
+            if (newFuncDeclNode->paramList[i] == NULL) {
+                printf("\033[1;31mError adding argument to table in parseFuncDef.\033[0m\n");
+                return NULL;
+            }
+            argStart = argStart->nextToken;
+            if (argStart == NULL || (argStart->value[0] != ',' && argStart->value[0] != ')')) {
+                printf("\033[1;31mBad argument seperator in parseFuncDef.\033[0m\n");
+                return NULL;
+            }
+            argStart = argStart->nextToken;
+        }
+        newFuncDeclNode->body = parseTokens(argStart->nextToken, 0, varTable, funcTable);
+        if (newFuncDeclNode->body == NULL) {
+            printf("\033[1;31mError parsing body in parseFuncDef.\033[0m\n");
+            return NULL;
+        }
     }
+
     return newFuncDeclNode;
 }
-ReturnNode* parseReturn(Token* head, VarTable* varTable, FuncTable* funcTable) {
+ReturnNode* parseReturn(Token* head, VarTable* varTable, FuncTable* funcTable) { //statement starts with the return keyword
     if (head == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to parseReturn.\033[0m\n");
         return NULL;
@@ -1228,24 +1207,38 @@ ReturnNode* parseReturn(Token* head, VarTable* varTable, FuncTable* funcTable) {
     return newReturnNode;
 }
 //MAIN PARSING FUNCTION
-ASTNode* parseTokens(Token* head, ScopeInfo* scopeInfo, VarTable* varTable, FuncTable* funcTable) { //takes in token list and returns AST - call recusively for nested scopes
+ASTNode* parseTokens(Token* head, int scopeData, VarTable* varTable, FuncTable* funcTable) { //head: token after {  - scopeData: main = -1, func w params = 0, other = 1
     if (head == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to parseTokens.\033[0m\n");
         return NULL;
     }
-    Token* endTok = NULL; //end is end of file if not in subScope
-    pushVarScope(varTable);
-    if (scopeInfo != NULL) { //not in global scope
-        endTok = findMatchingParen(head->prevToken, false); //put end token in correct place
+
+    Token* endTok = NULL;
+    if (scopeData == -1) { //main scope (no params) - push scope and end is NULL
+        if (!pushVarScope(varTable)) {
+            printf("\033[1;31mError pushing scope in parseTokens.\033[0m\n");
+            return NULL;
+        }
+    }
+    else if (scopeData == 0) { //function w params - scope handled already and end is ending }
+        endTok = findMatchingParen(head->prevToken, false);
         if (endTok == NULL) {
             printf("\033[1;31mError finding end token in parseTokens.\033[0m\n");
             return NULL;
         }
-        for (int i = 0; i < scopeInfo->numScopeVars; i++) { //push parameters if inside function call
-            pushVarEntry(varTable, scopeInfo->scopeVarNames[i]);
-        }
-        free(scopeInfo); //names are shallow copied and are freed later
     }
+    else { //other scope - push scope and end is ending }
+        if (!pushVarScope(varTable)) {
+            printf("\033[1;31mError pushing scope in parseTokens.\033[0m\n");
+            return NULL;
+        }
+        endTok = findMatchingParen(head->prevToken, false);
+        if (endTok == NULL) {
+            printf("\033[1;31mError finding end token in parseTokens.\033[0m\n");
+            return NULL;
+        }
+    }
+
     ASTNode* prevNode = NULL;
     ASTNode* ASTHead = NULL;
     ASTNode* newASTNode = NULL;

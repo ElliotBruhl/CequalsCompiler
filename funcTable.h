@@ -1,6 +1,5 @@
 #ifndef FUNCTABLE_H
 #define FUNCTABLE_H
-#include <stdbool.h>
 
 typedef struct {
     char* name;
@@ -14,7 +13,7 @@ typedef struct {
 } FuncTable;
 
 FuncTable* createFuncTable();
-bool pushFuncEntry(FuncTable* table, char* name, int paramCount);
+FuncEntry* pushFuncEntry(FuncTable* table, char* name, int paramCount);
 FuncEntry* funcLookup(FuncTable* table, char* name, int paramCount);
 void freeFuncTable(FuncTable* table);
 
