@@ -16,7 +16,6 @@ VarTable* createVarTable() {
     table->scopes = malloc(sizeof(VarScope*) * DEFAULT_CAPACITY);
     if (table->scopes == NULL) {
         printf("\033[1;31mMalloc failed in createVarTable.\033[0m\n");
-        free(table);
         return NULL;
     }
     return table;
@@ -46,6 +45,11 @@ bool pushVarScope(VarTable* table) {
             return false;
         }
     }
+    table->scopes[table->scopeCount] = malloc(sizeof(VarScope));
+    if (table->scopes[table->scopeCount] == NULL) {
+        printf("\033[1;31mMalloc failed in pushScope.\033[0m\n");
+        return false;
+    }
     table->scopes[table->scopeCount]->entryCount = 0;
     table->scopes[table->scopeCount]->entryCapacity = DEFAULT_CAPACITY;
     table->scopes[table->scopeCount]->entries = malloc(sizeof(VarEntry*) * DEFAULT_CAPACITY);
@@ -58,7 +62,7 @@ bool pushVarScope(VarTable* table) {
 }
 VarEntry* pushVarEntry(VarTable* table, char* name) {
     if (table == NULL || name == NULL) return NULL;
-    if (table->scopeCount == 0) { //no scope to push to 
+    if (table->scopeCount == 0) { //no scope to push to
         printf("\033[1;31mNo scope to push to in pushEntry.\033[0m\n");
         return NULL;
     }
@@ -71,6 +75,11 @@ VarEntry* pushVarEntry(VarTable* table, char* name) {
             return NULL;
         }
     }
+    curScope->entries[curScope->entryCount] = malloc(sizeof(VarEntry));
+    if (curScope->entries[curScope->entryCount] == NULL) {
+        printf("\033[1;31mMalloc failed in pushEntry.\033[0m\n");
+        return NULL;
+    }
     curScope->entries[curScope->entryCount]->name = strdup(name);
     if (curScope->entries[curScope->entryCount]->name == NULL) {
         printf("\033[1;31mStrdup failed in pushEntry.\033[0m\n");
@@ -80,25 +89,6 @@ VarEntry* pushVarEntry(VarTable* table, char* name) {
     curScope->entries[curScope->entryCount]->stackOffset = (curScope->entryCount) * 8 + 8;
     curScope->entryCount++;
     return curScope->entries[curScope->entryCount - 1];
-}
-bool pushVarEntryFuncParam(VarTable* table, VarEntry* entry) { //for function parameters (entry must be malloced already)
-    if (table == NULL || entry == NULL) return false;
-    if (table->scopeCount == 0) { //no scope to push to
-        printf("\033[1;31mNo scope to push to in pushEntry.\033[0m\n");
-        return false;
-    }
-    VarScope* curScope = table->scopes[table->scopeCount - 1];
-    if (curScope->entryCount == curScope->entryCapacity) { //resize if full
-        curScope->entryCapacity *= RESIZE_FACTOR;;
-        curScope->entries = realloc(curScope->entries, sizeof(VarEntry*) * curScope->entryCapacity);
-        if (curScope->entries == NULL) {
-            printf("\033[1;31mRealloc failed in pushEntry.\033[0m\n");
-            return false;
-        }
-    }
-    curScope->entries[curScope->entryCount] = entry;
-    curScope->entryCount++;
-    return true;
 }
 VarEntry* varLookup(VarTable* table, char* name) {
     if (table == NULL || name == NULL) return NULL;

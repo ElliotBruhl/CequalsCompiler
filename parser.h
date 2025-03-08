@@ -77,9 +77,10 @@ typedef struct ValueNode { //container for any type of value
     ValueType valueType;
     void* value; //unique pointer to avoid double free from tokens
 } ValueNode;
+typedef struct queueOrStackNode queueOrStackNode;
 typedef struct queueOrStackNode { //queue/stack for converting to and from postfix
     ValueNode* value;
-    struct queueOrStackNode* next;
+    queueOrStackNode* next;
 } queueOrStackNode;
 typedef struct FuncCallNode { //container for function calls
     char* funcName;
@@ -126,7 +127,7 @@ typedef struct ReturnNode { //sub-node for return statements
 
 //FUNCTIONS
 void freeASTNodes(ASTNode* head);
-void printASTs(ASTNode* head); //DEBUG (temp)
+void printASTs(ASTNode* head, int tabs);
 ASTNode* parseTokens(Token* head, ScopeInfo scopeData, VarTable* varTable, FuncTable* funcTable);
 
 #endif

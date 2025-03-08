@@ -23,7 +23,6 @@ VarTable* createVarTable();
 bool pushVarScope(VarTable* table);
 void popVarScope(VarTable* table);
 VarEntry* pushVarEntry(VarTable* table, char* name);
-bool pushVarEntryFuncParam(VarTable* table, VarEntry* entry);
 VarEntry* varLookup(VarTable* table, char* name);
 void freeVarTable(VarTable* table);
 

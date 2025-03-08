@@ -1,2 +1,31 @@
-#update parser to no longer use deep copy
-var x;
+#TODO
+#   -work on error messages (and more syntax checking?)
+#   -more testing on codegen for math ops
+#   -finish other codegen constructions
+
+func add(a, b) {
+    return a + b;
+}
+
+func main() {
+    var a;
+    var b;
+    var c;
+
+    a = 5;
+    b = 10;
+    c = add(a, b);
+
+    if (c) {
+        c = c - 1;
+    }
+    else {
+        c = c + 1;
+    }
+
+    while (c > 0) {
+        c = c / 2;
+    }
+
+    return c;
+}

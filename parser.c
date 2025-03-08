@@ -6,9 +6,48 @@
 FuncCallNode* parseFuncCall(Token* head, VarTable* varTable, FuncTable* funcTable, int numArgs);
 ValueNode* parseValueNode(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable);
 void freeValueNode(ValueNode* head);
-
 //DEBUG FUNCTIONS
-void printValueNode(ValueNode* value) { //DEBUG
+char* opToString(OperatorType op) {
+    switch (op) {
+        case NULL_OP: return "NULL_OP";
+        case OP_OPEN_PAREN: return "(";
+        case OP_CLOSE_PAREN: return ")";
+        case OP_BIT_NOT: return "~";
+        case OP_NOT: return "!";
+        case OP_REF: return "&";
+        case OP_DEREF: return "*";
+        case OP_MUL: return "* ";
+        case OP_DIV: return "/";
+        case OP_MOD: return "%%";
+        case OP_ADD: return "+";
+        case OP_SUB: return "-";
+        case OP_BIT_L: return "<<";
+        case OP_BIT_R: return ">>";
+        case OP_LT: return "<";
+        case OP_GT: return ">";
+        case OP_LTE: return "<=";
+        case OP_GTE: return ">=";
+        case OP_EQU: return "==";
+        case OP_NEQ: return "!=";
+        case OP_BIT_AND: return "& ";
+        case OP_BIT_XOR: return "^";
+        case OP_BIT_OR: return "|";
+        case OP_AND: return "&&";
+        case OP_OR: return "||";
+        default: return "UNKNOWN_OP";
+    }
+}
+char* valTypeToString(ValueType val) {
+    switch (val) {
+        case VALUE_OP: return "OP";
+        case VALUE_NUM: return "NUM";
+        case VALUE_VAR: return "VAR";
+        case VALUE_FUNC_RET: return "FUNC_RET";
+        case VALUE_MATH_OP: return "MATH_OP";
+        default: return "UNKNOWN";
+    }
+}
+void printValueNode(ValueNode* value) {
     if (value == NULL) {
         printf("NULL ValueNode\n");
         return;
@@ -24,20 +63,21 @@ void printValueNode(ValueNode* value) { //DEBUG
             printf("VAR: %s ", ((VarEntry*)value->value)->name);
             break;
         case VALUE_FUNC_RET:
-            printf("FUNC: %s ", ((FuncCallNode*)value->value)->funcName);
+            printf("FUNC: %s", ((FuncCallNode*)value->value)->funcName);
             break;
         case VALUE_MATH_OP:
             if (((MathOpNode*)value->value)->left == NULL)
-                printf("MathOp: Left Type: NULL Right Type: %d OP: %d", ((MathOpNode*)value->value)->right->valueType, ((MathOpNode*)value->value)->opType);
+                printf("MathOp: Left: NULL | Right: %s | OP: %s", valTypeToString(((MathOpNode*)value->value)->right->valueType), opToString(((MathOpNode*)value->value)->opType));
             else
-                printf("MathOp: Left Type: %d Right Type: %d OP: %d", ((MathOpNode*)value->value)->left->valueType, ((MathOpNode*)value->value)->right->valueType, ((MathOpNode*)value->value)->opType);
+                printf("MathOp: Left: %s | Right: %s | OP: %s", valTypeToString(((MathOpNode*)value->value)->left->valueType), 
+                    valTypeToString(((MathOpNode*)value->value)->right->valueType), opToString(((MathOpNode*)value->value)->opType));
             break;
         default:
             printf("Unknown value type in value print.\n");
     }
     return;
 }
-void printPostfix(queueOrStackNode* head) { //DEBUG
+void printPostfix(queueOrStackNode* head) {
     printf("Printing Postfix:\n");
     if (head == NULL) {
         printf("NULL Postfix\n");
@@ -49,13 +89,14 @@ void printPostfix(queueOrStackNode* head) { //DEBUG
         current = current->next;
     }
 }
-void printASTs(ASTNode* head) { //DEBUG
+void printASTs(ASTNode* head, int tabs) {
     if (head == NULL) {
         printf("NULL AST\n");
         return;
     }
     ASTNode* current = head;
     while (current != NULL) {
+        for (int i = 0; i < tabs; i++) printf("\t");
         switch (current->nodeType) {
             case NODE_VAR_DECL:
                 printf("VarDecl: %s", ((VarDeclNode*)current->subNode)->varInfo->name);
@@ -67,28 +108,25 @@ void printASTs(ASTNode* head) { //DEBUG
                 printf("\n");
                 break;
             case NODE_FUNC_DECL:
-                printf("FuncDecl: %s (%d arg(s))\n", ((FuncDeclNode*)current->subNode)->funcInfo->name, ((FuncDeclNode*)current->subNode)->funcInfo->paramCount);
-                printf("Function Body:\n");
-                printASTs(((FuncDeclNode*)current->subNode)->body);
-                printf("\n");
+                printf("FuncDecl: %s(%d args)\n", ((FuncDeclNode*)current->subNode)->funcInfo->name, ((FuncDeclNode*)current->subNode)->funcInfo->paramCount);
+                printASTs(((FuncDeclNode*)current->subNode)->body, tabs + 1);
                 break;
             case NODE_WHILE:
-                printf("While: ");
+                printf("While: ( ");
                 printValueNode(((WhileNode*)current->subNode)->condition);
-                printf("While Body:\n");
-                printASTs(((WhileNode*)current->subNode)->body);
-                printf("\n");
+                printf(" )\n");
+                printASTs(((WhileNode*)current->subNode)->body, tabs + 1);
                 break;
             case NODE_IF:
-                printf("If: ");
+                printf("If: ( ");
                 printValueNode(((IfNode*)current->subNode)->condition);
-                printf("\nIf Body:\n");
-                printASTs(((IfNode*)current->subNode)->body);
+                printf(" )\n");
+                printASTs(((IfNode*)current->subNode)->body, tabs + 1);
                 if (((IfNode*)current->subNode)->elseBody != NULL) {
-                    printf("\nElse Body:\n");
-                    printASTs(((IfNode*)current->subNode)->elseBody);
+                    for (int i = 0; i < tabs; i++) printf("\t");
+                    printf("Else:\n");
+                    printASTs(((IfNode*)current->subNode)->elseBody, tabs + 1);
                 }
-                printf("\n");
                 break;
             case NODE_RETURN:
                 printf("Return: ");
@@ -134,17 +172,16 @@ void freeValueNode(ValueNode* head) {
     }
     free(head);
 }
-void freePostfix(queueOrStackNode* head) {
+void freePostfix(queueOrStackNode* head) { //free the postfix expression (but not the valueNodes created)
     if (head == NULL) return;
     queueOrStackNode* current = head;
     while (current != NULL) {
         queueOrStackNode* next = current->next;
-        freeValueNode(current->value);
         free(current);
         current = next;
     }
 }
-void freeASTNodes(ASTNode* head) {
+void freeASTNodes(ASTNode* head) { //frees everything else in the AST
     if (head == NULL) return;
     ASTNode* current = head;
     while (current != NULL) {
@@ -238,7 +275,7 @@ int numParams(Token* head) { //takes in first paren and goes until matching end 
     }
     return parens == 0 ? params : -1;
 }
-OperatorType getOperatorType(Token* token, VarTable* varTable, FuncTable* funcTable) { //-3 for func, -2 for var, -1 for number, 0 for error, positive for valid operator (do op/4 for precedence)
+OperatorType getOperatorType(Token* token, VarTable* varTable, FuncTable* funcTable) { //return values are in enum declaration
     if (token == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to getOperatorType.\033[0m\n");
         return NULL_OP;
@@ -337,8 +374,6 @@ int getArgType(Token* head, Token* tail) { //head is first token of arg and tail
     }
     return 2; //math op
 }
-//PARSING MATH OPERATIONS
-    //POSTFIX CONVERSION
 queueOrStackNode* enqueue(queueOrStackNode* back, ValueNode* value) { //returns new back
     queueOrStackNode* newNode = (queueOrStackNode*)malloc(sizeof(queueOrStackNode));
     if (newNode == NULL) {
@@ -355,7 +390,7 @@ queueOrStackNode* dequeue(queueOrStackNode* front) { //returns new front
     free(front);
     return newFront;
 }
-queueOrStackNode* push(queueOrStackNode* front, ValueNode* value) { //return new front (of stack)
+queueOrStackNode* push(queueOrStackNode* front, ValueNode* value) { //return new front
     queueOrStackNode* newNode = (queueOrStackNode*)malloc(sizeof(queueOrStackNode));
     if (newNode == NULL) {
         printf("\033[1;31mMalloc error in push.\033[0m\n");
@@ -365,6 +400,7 @@ queueOrStackNode* push(queueOrStackNode* front, ValueNode* value) { //return new
     newNode->next = front;
     return newNode;
 }
+//PARSING MATH OPERATIONS
 queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //takes in math expression (inclusive) and returns postfix expression
     if (head == NULL || endTok == NULL) {
         printf("\033[1;31mNull parameter to buildPostfix.\033[0m\n");
@@ -589,70 +625,6 @@ queueOrStackNode* buildPostfix(Token* head, Token* endTok, VarTable* varTable, F
 
     return outQ; //return head of postfix expression
 }
-    //POSTFIX TO TREE
-ValueNode* deepCopyValueNode(ValueNode* old) {
-    if (old->valueType == VALUE_MATH_OP) { //should already be deep copied
-        return old;
-    }
-    if (old == NULL || old->valueType == VALUE_OP || old->value == NULL) {
-        printf("\033[1;31mBad value node passed to deepCopyValueNode.\033[0m\n");
-        return NULL;
-    }
-    ValueNode* new = (ValueNode*)malloc(sizeof(ValueNode));
-    if (new == NULL) {
-        printf("\033[1;31mMalloc error in deepCopyValueNode.\033[0m\n");
-        return NULL;
-    }
-    new->valueType = old->valueType;
-    switch (old->valueType) {
-        case VALUE_NUM:
-            new->value = malloc(sizeof(long long));
-            if (new->value == NULL) {
-                printf("\033[1;31mMalloc error in deepCopyValueNode.\033[0m\n");
-                return NULL;
-            }
-            *(long long*)new->value = *(long long*)old->value;
-            break;
-        case VALUE_VAR: //don't need to deep copy this
-            new->value = old->value;
-            break;
-        case VALUE_FUNC_RET:
-            new->value = malloc(sizeof(FuncCallNode));
-            if (new->value == NULL) {
-                printf("\033[1;31mMalloc error in deepCopyValueNode.\033[0m\n");
-                return NULL;
-            }
-            ((FuncCallNode*)new->value)->funcName = malloc(strlen(((FuncCallNode*)old->value)->funcName) + 1);
-            if (((FuncCallNode*)new->value)->funcName == NULL) {
-                printf("\033[1;31mMalloc error in deepCopyValueNode.\033[0m\n");
-                return NULL;
-            }
-            strcpy(((FuncCallNode*)new->value)->funcName, ((FuncCallNode*)old->value)->funcName);
-            ((FuncCallNode*)new->value)->argCount = ((FuncCallNode*)old->value)->argCount;
-            if (((FuncCallNode*)old->value)->argCount == 0) {
-                ((FuncCallNode*)new->value)->args = NULL;
-            }
-            else {
-                ((FuncCallNode*)new->value)->args = malloc(sizeof(ValueNode*) * ((FuncCallNode*)old->value)->argCount);
-                if (((FuncCallNode*)new->value)->args == NULL) {
-                    printf("\033[1;31mMalloc error in deepCopyValueNode.\033[0m\n");
-                    return NULL;
-                }
-                for (int i = 0; i < ((FuncCallNode*)old->value)->argCount; i++) {
-                    ((FuncCallNode*)new->value)->args[i] = deepCopyValueNode(((FuncCallNode*)old->value)->args[i]); //error when passing math op
-                    if (((FuncCallNode*)new->value)->args[i] == NULL) {
-                        printf("\033[1;31mdeepCopyValueNode failed in deepCopyValueNode.\033[0m\n");
-                        return NULL;
-                    }
-                }
-            }
-            break;
-        default:
-            printf("\033[1;31mUnknown value type in deepCopyValueNode.\033[0m\n");
-            return NULL;
-    }
-    return new;       
-}
 MathOpNode* postfixToTree(queueOrStackNode* head) { //takes in postfix expression and returns binary tree
     if (head == NULL) {
         printf("\033[1;31mNull parameter to postfixToTree.\033[0m\n");
@@ -698,12 +670,7 @@ MathOpNode* postfixToTree(queueOrStackNode* head) { //takes in postfix expressio
             case VALUE_NUM:
             case VALUE_VAR:
             case VALUE_FUNC_RET:
-                ValueNode* newValNodeCopy = deepCopyValueNode(current->value); //deepcopy func ret fails
-                if (newValNodeCopy == NULL) {
-                    printf("\033[1;31mdeepCopyValueNode failed in postfixToTree.\033[0m\n");
-                    return NULL;
-                }
-                nodeStack = push(nodeStack, newValNodeCopy);
+                nodeStack = push(nodeStack, current->value);
                 break;
             case VALUE_MATH_OP:
                 printf("\033[1;31mMathOpNode in postfixToTree.\033[0m\n");
@@ -722,7 +689,6 @@ MathOpNode* postfixToTree(queueOrStackNode* head) { //takes in postfix expressio
     freePostfix(head);
     return nodeStack->value->value;
 }
-    //VALIDATION/MAIN FUNCTIONS
 bool isValidMathOp(Token* head, Token* endTok, VarTable* varTable, FuncTable* funcTable) { //checks for valid math operation (inclusive)
     //check for null parameters
     if (head == NULL || endTok == NULL || varTable == NULL || funcTable == NULL) {

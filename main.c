@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
         printf("\033[0;31mFATAL ERROR: failed to parse tokens\033[0m\n");
         return -5;
     }
-    printASTs(AST); //DEBUG (temp)
+    printASTs(AST, 0); //DEBUG (temp)
     freeTokens(tokens);
 
     //CODE GENERATION
@@ -56,11 +56,6 @@ int main(int argc, char** argv) {
     FILE *output = fopen(argv[2], "w");
     if (output == NULL) {
         printf("\033[0;31mFATAL ERROR: failed to open output file\033[0m\n");
-        return -6;
-    }
-    MathOpNode* mathOpTree = (MathOpNode*)(((VarAssignNode*)AST->next->subNode)->newValue->value); //void pointer hell (copilot suggestion)
-    if (!traverseMathOpTree(output, mathOpTree, true, varTable, funcTable)) {
-        printf("\033[0;31mFATAL ERROR: error writing code\033[0m\n");
         return -6;
     }
 
