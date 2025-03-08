@@ -2,6 +2,9 @@
 #   -work on error messages (and more syntax checking?)
 #   -more testing on codegen for math ops
 #   -finish other codegen constructions
+#   -incorporate the C standary library
+#   -Cequals language documentation
+#   -Cequals VS code extension
 
 func add(a, b) {
     return a + b;
