@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
 
     //PARSE
     printf("\033[0;34mParsing...4/6\033[0m\n");
-    ASTNode *AST = parseTokens(tokens, NULL, varTable, funcTable);
+    ASTNode *AST = parseTokens(tokens, SCOPE_GLOBAL, varTable, funcTable);
     if (AST == NULL) {
         printf("\033[0;31mFATAL ERROR: failed to parse tokens\033[0m\n");
         return -5;

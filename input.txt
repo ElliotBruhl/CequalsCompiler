@@ -1,2 +1,2 @@
 #update parser to no longer use deep copy
-var x = 5;
+var x;

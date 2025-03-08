@@ -15,8 +15,12 @@ typedef enum { //for what type of sub-node an ASTNode contains
     NODE_RETURN
 } NodeType;
 typedef enum { //for all operators (divide by 4 to get precedence (backward))
-    I_HAVE_TO_FORCE_THIS_TO_BE_A_SIGNED_TYPE = -1, //this is why -1 >= 0 was true
-    NULL_OP = 0,        // error operator
+    // Operands
+    VAL_FUNC = -3,      //function call
+    VAL_VAR = -2,       //variable
+    VAL_NUM = -1,       //number
+    // Special
+    NULL_OP = 0,        // error
     // Precedence 1 - parentheses (a separator)
     OP_OPEN_PAREN = 1,  // (
     OP_CLOSE_PAREN = 2, // )
@@ -61,6 +65,11 @@ typedef enum { //for what type of value a ValueNode contains
     VALUE_FUNC_RET,     //FuncCallNode*
     VALUE_MATH_OP,      //MathOpNode*
 } ValueType;
+typedef enum {
+    SCOPE_GLOBAL,       //for global scope
+    SCOPE_PARAM_FUNC,   //for functions that have parameters
+    SCOPE_OTHER         //for all other scopes
+} ScopeInfo;
 
 //STRUCTS
     //HELPER STRUCTS
@@ -82,10 +91,6 @@ typedef struct MathOpNode { //node in math expression binary tree
     ValueNode* left; //nullable for unary operators
     ValueNode* right; 
 } MathOpNode;
-typedef struct ScopeInfo {
-    int numScopeVars;
-    char** scopeVarNames; //only used for function declarations
-} ScopeInfo;
     //AST STRUCTS
 typedef struct ASTNode ASTNode;
 typedef struct ASTNode { //linked list of containers for AST nodes (main data structure)
@@ -122,6 +127,6 @@ typedef struct ReturnNode { //sub-node for return statements
 //FUNCTIONS
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head); //DEBUG (temp)
-ASTNode* parseTokens(Token* head, int scopeData, VarTable* varTable, FuncTable* funcTable);
+ASTNode* parseTokens(Token* head, ScopeInfo scopeData, VarTable* varTable, FuncTable* funcTable);
 
 #endif
