@@ -10,7 +10,9 @@ typedef enum {      //describes where a piece of data is
     STACK           //value is on top of the stack
 } ValueStatus;
 
-bool traverseMathOpTree(FILE* file, MathOpNode* mathAST, bool isLeft, VarTable* varTable, FuncTable* funcTable);
+bool traverseMathOpTree(FILE* file, MathOpNode* mathAST, bool isLeft, VarTable* varTable, FuncTable* funcTable); //temp (testing)
+bool codeGen(FILE* file, ASTNode* head, VarTable* varTable, FuncTable* funcTable);
+
 /*
 C standard library supported functions:
 

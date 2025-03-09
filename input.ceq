@@ -1,10 +1,11 @@
 #TODO
 #   -work on error messages (and more syntax checking?)
-#   -more testing on codegen for math ops
+#   -more testing on codegen for math ops (and function calls within them)
+#   -semantic analysis phase (return value checking, dead code, ...)
 #   -finish other codegen constructions
-#   -incorporate the C standary library
+#   -incorporate the C standard library functions
 #   -Cequals language documentation
-#   -Cequals VS code extension
+#   -add more features (arrays, ...?)
 
 func add(a, b) {
     return a + b;
