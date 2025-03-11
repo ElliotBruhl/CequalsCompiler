@@ -14,7 +14,6 @@ bool moveValue(FILE* file, ValueNode* value, ValueStatus src, ValueStatus dest, 
         printf("\033[1;31mNull value parameter to moveValue.\033[0m\n");
         return false;
     }
-    fprintf(file, "\t;moving value from type %d to type %d\n", src, dest);
     switch (src) {
         case UNPROCESSED:
             if (value->valueType == VALUE_NUM) {
@@ -42,7 +41,7 @@ bool moveValue(FILE* file, ValueNode* value, ValueStatus src, ValueStatus dest, 
                     fprintf(file, "\tmov rcx, [rbp-%d]\n", var->stackOffset);
                 }
                 else if (dest == STACK) {
-                    fprintf(file, "\tpush [rbp-%d]\n", var->stackOffset);
+                    fprintf(file, "\tpush qword [rbp-%d]\n", var->stackOffset);
                 }
                 else {
                     printf("\033[1;31mInvalid destination status %d in moveValue.\033[0m\n", dest);
@@ -51,23 +50,25 @@ bool moveValue(FILE* file, ValueNode* value, ValueStatus src, ValueStatus dest, 
             }
             else if (value->valueType == VALUE_FUNC_RET) {
                 FuncCallNode* funcCall = (FuncCallNode*)value->value;
-
+                fprintf(file, "\t;preparing to call %s\n", funcCall->funcName);
                 if (saveRegs) { //save appropriate registers
                     if (dest != RAX)
                         fprintf(file, "\tpush rax\n");
                     if (dest != RCX)
                         fprintf(file, "\tpush rcx\n");
                 }
-
                 //check for special handling of C standard library functions
-
-                for (int i = 0; i < funcCall->argCount; i++) { //prepare arguments (all args go to stack)
+                //prepare arguments (all args go to stack)
+                for (int i = 0; i < funcCall->argCount; i++) { 
                     if (!moveValue(file, funcCall->args[i], UNPROCESSED, STACK, false, varTable, funcTable)) return false;
                 }
-                fprintf(file, "\tcall %s\n", funcCall->funcName); //call function
-                if (funcCall->argCount > 0)
-                    fprintf(file, "\tadd rsp, %d\n", funcCall->argCount * 8); //remove arguments from stack
-                
+                //call function
+                fprintf(file, "\tcall %s\n", funcCall->funcName); 
+                //clean up stack
+                if (funcCall->argCount > 0) {
+                    fprintf(file, "\t;reclaim stack space\n");
+                    fprintf(file, "\tadd rsp, %d\n", funcCall->argCount * 8);
+                }
                 //move return value
                 if (dest == RCX) { 
                     fprintf(file, "\tmov rcx, rax\n");
@@ -332,14 +333,11 @@ bool traverseMathOpTree(FILE* file, MathOpNode* mathAST, bool isLeft, VarTable* 
     }
 }
 
-bool writeCode(FILE* file, ASTNode* head, FuncDeclNode* func, VarTable* varTable, FuncTable* funcTable) {
-    if (file == NULL || head == NULL || func == NULL || varTable == NULL || funcTable == NULL) {
+bool writeCode(FILE* file, ASTNode* head, VarTable* varTable, FuncTable* funcTable) {
+    if (file == NULL || head == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to writeCode.\033[0m\n");
         return false;
     }
-    //prepare stack frame
-    fprintf(file, "\tpush rbp\n");
-    fprintf(file, "\tmov rbp, rsp\n");
 
     ASTNode* current = head;
     while (current != NULL) {
@@ -380,7 +378,10 @@ bool writeCode(FILE* file, ASTNode* head, FuncDeclNode* func, VarTable* varTable
                 break;
             case NODE_FUNC_DECL:
                 fprintf(file, "%s:\n", ((FuncDeclNode*)(current->subNode))->funcInfo->name);
-                if (!writeCode(file, ((FuncDeclNode*)(current->subNode))->body, (FuncDeclNode*)(current->subNode), varTable, funcTable)) return false;
+                fprintf(file, "\t;prepare stack\n");
+                fprintf(file, "\tpush rbp\n");
+                fprintf(file, "\tmov rbp, rsp\n");
+                if (!writeCode(file, ((FuncDeclNode*)(current->subNode))->body, varTable, funcTable)) return false;
                 break;
             case NODE_WHILE:
                 //...
@@ -390,6 +391,7 @@ bool writeCode(FILE* file, ASTNode* head, FuncDeclNode* func, VarTable* varTable
                 break;
             case NODE_RETURN:
                 ValueNode* retVal = ((ReturnNode*)(current->subNode))->returnValue;
+                fprintf(file, "\t;get return value\n");
                 switch (retVal->valueType) {
                     case VALUE_NUM:
                     case VALUE_FUNC_RET:
@@ -405,9 +407,10 @@ bool writeCode(FILE* file, ASTNode* head, FuncDeclNode* func, VarTable* varTable
                         printf("\033[1;31mInvalid value type %d in return statement.\033[0m\n", retVal->valueType);
                         return false;
                 }
+                fprintf(file, "\t;restore stack\n");
                 fprintf(file, "\tmov rsp, rbp\n");
                 fprintf(file, "\tpop rbp\n");
-                fprintf(file, "\tret\n");
+                fprintf(file, "\tret\n\n");
                 break;
             default:
                 printf("\033[1;31mInvalid node type %d in writeCode.\033[0m\n", current->nodeType);
@@ -425,7 +428,12 @@ bool codeGen(FILE* file, ASTNode* head, VarTable* varTable, FuncTable* funcTable
     }
 
     //write header
+    fprintf(file, "default rel\n\n");
+    fprintf(file, "section .text\n");
+    fprintf(file, "\tglobal main\n\n");
+
     //enter functions with writeCode
+    if (!writeCode(file, head, varTable, funcTable)) return false;
 
     return true;
 }

@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
         printf("\033[0;31mFATAL ERROR: failed to open output file\033[0m\n");
         return -6;
     }
-    if (!codeGen(AST, output, varTable, funcTable)) {
+    if (!codeGen(output, AST, varTable, funcTable)) {
         printf("\033[0;31mFATAL ERROR: failed to generate code\033[0m\n");
         fclose(output);
         return -7;

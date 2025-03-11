@@ -1,7 +1,7 @@
 #TODO
 #   -work on error messages (and more syntax checking?)
-#   -more testing on codegen for math ops (and function calls within them)
-#   -semantic analysis phase (return value checking, dead code, ...)
+#   -fix how parameters are accesed from functions (parameters are passed above the stack frame)
+#   -semantic analysis phase (return value checking, dead code, stack frame size, ...)
 #   -finish other codegen constructions
 #   -incorporate the C standard library functions
 #   -Cequals language documentation
@@ -16,20 +16,9 @@ func main() {
     var b;
     var c;
 
-    a = 5;
-    b = 10;
+    a = 1;
+    b = 2;
     c = add(a, b);
-
-    if (c) {
-        c = c - 1;
-    }
-    else {
-        c = c + 1;
-    }
-
-    while (c > 0) {
-        c = c / 2;
-    }
 
     return c;
 }
