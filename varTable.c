@@ -20,22 +20,23 @@ VarTable* createVarTable() {
     }
     return table;
 }
-void popVarScope(VarTable* table) {
+void popVarScope(VarTable* table) { //varEntries are freed after codegen
     if (table == NULL) return;
     if (table->scopeCount > 0) {
         free(table->scopes[table->scopeCount - 1]->entries);
         table->scopeCount--;
     }
 }
-void freeVarTable(VarTable* table) { //the entries are all freed after codegen (they get referenced by a new pointer during parsing)
+void freeVarTable(VarTable* table) { //VarEntries are freed after codegen
     if (table == NULL) return;
     while (table->scopeCount > 0) {
-        popVarScope(table);
+        free(table->scopes[table->scopeCount - 1]->entries);
+        table->scopeCount--;
     }
     free(table->scopes);
     free(table);
 }
-bool pushVarScope(VarTable* table) {
+bool pushVarScope(VarTable* table, bool paramScope) {
     if (table == NULL) return false;
     if (table->scopeCount == table->scopeCapacity) { //resize if full
         table->scopeCapacity *= RESIZE_FACTOR;
@@ -52,6 +53,7 @@ bool pushVarScope(VarTable* table) {
     }
     table->scopes[table->scopeCount]->entryCount = 0;
     table->scopes[table->scopeCount]->entryCapacity = DEFAULT_CAPACITY;
+    table->scopes[table->scopeCount]->isParamScope = paramScope;
     table->scopes[table->scopeCount]->entries = malloc(sizeof(VarEntry*) * DEFAULT_CAPACITY);
     if (table->scopes[table->scopeCount]->entries == NULL) {
         printf("\033[1;31mMalloc failed in pushScope.\033[0m\n");
@@ -86,7 +88,10 @@ VarEntry* pushVarEntry(VarTable* table, char* name) {
         return NULL;
     }
     //calc offset
-    curScope->entries[curScope->entryCount]->stackOffset = (curScope->entryCount) * 8 + 8;
+    if (curScope->isParamScope) 
+        curScope->entries[curScope->entryCount]->stackOffset = (curScope->entryCount + 2) * 8; //positive offset from base pointer and skip return address
+    else
+        curScope->entries[curScope->entryCount]->stackOffset = (curScope->entryCount + 1) * -8; //negative offset from base pointer
     curScope->entryCount++;
     return curScope->entries[curScope->entryCount - 1];
 }

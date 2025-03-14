@@ -1019,7 +1019,7 @@ IfNode* parseIf(Token* head, VarTable* varTable, FuncTable* funcTable) { //state
         printf("\033[1;31mError parsing condition in parseIf.\033[0m\n");
         return NULL;
     }
-    newIfNode->body = parseTokens(conditionEnd->nextToken->nextToken, SCOPE_OTHER, varTable, funcTable);
+    newIfNode->body = parseTokens(conditionEnd->nextToken->nextToken, false, varTable, funcTable);
     if (newIfNode->body == NULL) {
         printf("\033[1;31mError parsing body in parseIf.\033[0m\n");
         return NULL;
@@ -1030,7 +1030,7 @@ IfNode* parseIf(Token* head, VarTable* varTable, FuncTable* funcTable) { //state
         return NULL;
     }
     if (conditionEnd->nextToken != NULL && conditionEnd->nextToken->tokenType == TOKEN_KEYWORD && conditionEnd->nextToken->value[0] == 'e') { //has an else statement
-        newIfNode->elseBody = parseTokens(conditionEnd->nextToken->nextToken->nextToken, SCOPE_OTHER, varTable, funcTable);
+        newIfNode->elseBody = parseTokens(conditionEnd->nextToken->nextToken->nextToken, false, varTable, funcTable);
         if (newIfNode->elseBody == NULL) {
             printf("\033[1;31mError parsing else body in parseIf.\033[0m\n");
             return NULL;
@@ -1064,15 +1064,15 @@ WhileNode* parseWhile(Token* head, VarTable* varTable, FuncTable* funcTable) { /
         printf("\033[1;31mError parsing condition in parseWhile.\033[0m\n");
         return NULL;
     }
-    newWhileNode->body = parseTokens(conditionEnd->nextToken->nextToken, SCOPE_OTHER, varTable, funcTable);
+    newWhileNode->body = parseTokens(conditionEnd->nextToken->nextToken, false, varTable, funcTable);
     if (newWhileNode->body == NULL) {
         printf("\033[1;31mError parsing body in parseWhile.\033[0m\n");
         return NULL;
     }
     return newWhileNode;
 }
-FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable) { //statement starts with the func keyword
-    if (head == NULL || varTable == NULL || funcTable == NULL) {
+FuncDeclNode* parseFuncDef(Token* head, FuncTable* funcTable) { //statement starts with the func keyword
+    if (head == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to parseFuncDef.\033[0m\n");
         return NULL;
     }
@@ -1099,21 +1099,26 @@ FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable
         printf("\033[1;31mError adding function to table in parseFuncDef.\033[0m\n");
         return NULL;
     }
-    if (params == 0) { //no parameters - don't need to push scope
+    if (params == 0) { //no parameters
         newFuncDeclNode->paramList = NULL;
-        newFuncDeclNode->body = parseTokens(head->nextToken->nextToken->nextToken->nextToken->nextToken, SCOPE_OTHER, varTable, funcTable);
+        newFuncDeclNode->body = parseTokens(head->nextToken->nextToken->nextToken->nextToken->nextToken, false, createVarTable(), funcTable);
         if (newFuncDeclNode->body == NULL) {
             printf("\033[1;31mError parsing body in parseFuncDef.\033[0m\n");
             return NULL;
         }
     }
-    else { //parameters - push scope and add paramters to table
+    else { //parameters - make a new table and special parameter scope
         newFuncDeclNode->paramList = (VarEntry**)malloc(params * sizeof(VarEntry*));
         if (newFuncDeclNode->paramList == NULL) {
             printf("\033[1;31mMalloc error in parseFuncDef.\033[0m\n");
             return NULL;
         }
-        if (pushVarScope(varTable) == false) {
+        VarTable* newVarTable = createVarTable();
+        if (newVarTable == NULL) {
+            printf("\033[1;31mError creating new table in parseFuncDef.\033[0m\n");
+            return NULL;
+        }
+        if (pushVarScope(newVarTable, true) == false) {
             printf("\033[1;31mError pushing scope in parseFuncDef.\033[0m\n");
             return NULL;
         }
@@ -1123,7 +1128,7 @@ FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable
                 printf("\033[1;31mBad argument name in parseFuncDef.\033[0m\n");
                 return NULL;
             }
-            newFuncDeclNode->paramList[i] = pushVarEntry(varTable, argStart->value);
+            newFuncDeclNode->paramList[i] = pushVarEntry(newVarTable, argStart->value);
             if (newFuncDeclNode->paramList[i] == NULL) {
                 printf("\033[1;31mError adding argument to table in parseFuncDef.\033[0m\n");
                 return NULL;
@@ -1135,7 +1140,7 @@ FuncDeclNode* parseFuncDef(Token* head, VarTable* varTable, FuncTable* funcTable
             }
             argStart = argStart->nextToken;
         }
-        newFuncDeclNode->body = parseTokens(argStart->nextToken, SCOPE_PARAM_FUNC, varTable, funcTable);
+        newFuncDeclNode->body = parseTokens(argStart->nextToken, false, newVarTable, funcTable);
         if (newFuncDeclNode->body == NULL) {
             printf("\033[1;31mError parsing body in parseFuncDef.\033[0m\n");
             return NULL;
@@ -1166,39 +1171,23 @@ ReturnNode* parseReturn(Token* head, VarTable* varTable, FuncTable* funcTable) {
     return newReturnNode;
 }
 //MAIN PARSING FUNCTION
-ASTNode* parseTokens(Token* head, ScopeInfo scopeData, VarTable* varTable, FuncTable* funcTable) { //head: token after {
+ASTNode* parseTokens(Token* head, bool inGlobalScope, VarTable* varTable, FuncTable* funcTable) { //head is token after {
     if (head == NULL || varTable == NULL || funcTable == NULL) {
         printf("\033[1;31mNull parameter to parseTokens.\033[0m\n");
         return NULL;
     }
 
     Token* endTok = NULL;
-    if (scopeData == SCOPE_GLOBAL) { //push scope and end is NULL
-        if (!pushVarScope(varTable)) {
-            printf("\033[1;31mError pushing scope in parseTokens.\033[0m\n");
-            return NULL;
-        }
-    }
-    else if (scopeData == SCOPE_PARAM_FUNC) { //function w params - scope handled already and end is ending }
+    if (!inGlobalScope) { //look for ending bracket if not in global scope
         endTok = findMatchingParen(head->prevToken, false);
         if (endTok == NULL) {
             printf("\033[1;31mError finding end token in parseTokens.\033[0m\n");
             return NULL;
         }
     }
-    else if (scopeData == SCOPE_OTHER) { //other scope - push scope and end is ending }
-        if (!pushVarScope(varTable)) {
-            printf("\033[1;31mError pushing scope in parseTokens.\033[0m\n");
-            return NULL;
-        }
-        endTok = findMatchingParen(head->prevToken, false);
-        if (endTok == NULL) {
-            printf("\033[1;31mError finding end token in parseTokens.\033[0m\n");
-            return NULL;
-        }
-    }
-    else {
-        printf("\033[1;31mBad scope data in parseTokens.\033[0m\n");
+
+    if (!pushVarScope(varTable, false)) { //push a new scope for local variables
+        printf("\033[1;31mError pushing scope in parseTokens.\033[0m\n");
         return NULL;
     }
 
@@ -1288,7 +1277,7 @@ ASTNode* parseTokens(Token* head, ScopeInfo scopeData, VarTable* varTable, FuncT
                         break;
                     case 'f': //function definition
                         newASTNode->nodeType = NODE_FUNC_DECL;
-                        newASTNode->subNode = parseFuncDef(current, varTable, funcTable);
+                        newASTNode->subNode = parseFuncDef(current, funcTable);
                         if (newASTNode->subNode == NULL) {
                             printf("\033[1;31mError parsing function definition. Line %d.\033[0m\n", current->lineNum);
                             return NULL;

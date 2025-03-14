@@ -65,11 +65,6 @@ typedef enum { //for what type of value a ValueNode contains
     VALUE_FUNC_RET,     //FuncCallNode*
     VALUE_MATH_OP,      //MathOpNode*
 } ValueType;
-typedef enum {
-    SCOPE_GLOBAL,       //for global scope
-    SCOPE_PARAM_FUNC,   //for functions that have parameters
-    SCOPE_OTHER         //for all other scopes
-} ScopeInfo;
 
 //STRUCTS
     //HELPER STRUCTS
@@ -128,6 +123,6 @@ typedef struct ReturnNode { //sub-node for return statements
 //FUNCTIONS
 void freeASTNodes(ASTNode* head);
 void printASTs(ASTNode* head, int tabs);
-ASTNode* parseTokens(Token* head, ScopeInfo scopeData, VarTable* varTable, FuncTable* funcTable);
+ASTNode* parseTokens(Token* head, bool inGlobalScope, VarTable* varTable, FuncTable* funcTable);
 
 #endif
