@@ -1194,7 +1194,8 @@ ASTNode* parseTokens(Token* head, bool inGlobalScope, VarTable* varTable, FuncTa
     ASTNode* prevNode = NULL;
     ASTNode* ASTHead = NULL;
     ASTNode* newASTNode = NULL;
-    for (Token* current = head; current != endTok && current != NULL; current = current->nextToken) {
+    Token* current;
+    for (current = head; current != endTok && current != NULL; current = current->nextToken) {
         newASTNode = (ASTNode*)malloc(sizeof(ASTNode));
         if (newASTNode == NULL) {
             printf("\033[1;31mMalloc error in parseTokens.\033[0m\n");
@@ -1319,6 +1320,11 @@ ASTNode* parseTokens(Token* head, bool inGlobalScope, VarTable* varTable, FuncTa
         else prevNode->next = newASTNode;
         prevNode = newASTNode;
     }
+    if (!inGlobalScope && current == NULL) {
+        printf("\033[1;31mUnexpected end of file in parseTokens.\033[0m\n");
+        return NULL;
+    }
+    
     popVarScope(varTable); //pop scope
     return ASTHead;
 }

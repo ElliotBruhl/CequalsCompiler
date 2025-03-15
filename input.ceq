@@ -7,17 +7,7 @@
 #   -add more features (arrays, ...?)
 
 func main() {
-    #xor swap
-    var a; 
-    a = 749;
-    var b; 
-    b = 568;
-
-    a = a ^ b;
-    b = a ^ b;
-    a = a ^ b;
-
-    return a;
+    return 0;
 }
 
-#segfaults or errors with function arguments
+#segfaults on math operations that go to EOF (no semicolon)

@@ -59,7 +59,7 @@ bool moveValue(FILE* file, ValueNode* value, ValueStatus src, ValueStatus dest, 
                 }
                 //check for special handling of C standard library functions - TODO
                 //prepare arguments (all args go to stack) - push in reverse order
-                for (int i = funcCall->argCount; i > 0; i--) {
+                for (int i = funcCall->argCount - 1; i >= 0; i--) {
                     if (!moveValue(file, funcCall->args[i], UNPROCESSED, STACK, false, varTable, funcTable)) return false;
                 }
                 //call function
