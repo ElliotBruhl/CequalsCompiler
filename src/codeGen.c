@@ -60,7 +60,13 @@ bool moveValue(FILE* file, ValueNode* value, ValueStatus src, ValueStatus dest, 
                 //check for special handling of C standard library functions - TODO
                 //prepare arguments (all args go to stack) - push in reverse order
                 for (int i = funcCall->argCount - 1; i >= 0; i--) {
-                    if (!moveValue(file, funcCall->args[i], UNPROCESSED, STACK, false, varTable, funcTable)) return false;
+                    if (funcCall->args[i]->valueType == VALUE_MATH_OP) {
+                        if (!traverseMathOpTree(file, (MathOpNode*)funcCall->args[i]->value, true, varTable, funcTable)) return false;
+                        fprintf(file, "\tpush rax\n");
+                    }
+                    else {
+                        if (!moveValue(file, funcCall->args[i], UNPROCESSED, STACK, false, varTable, funcTable)) return false;
+                    }
                 }
                 //call function
                 fprintf(file, "\tcall %s\n", funcCall->funcName);
@@ -144,10 +150,21 @@ bool evaluateMathExpr(FILE* file, MathOpNode* mathOp, bool resultInRAX, ValueSta
             return false;
         }
     }
-    else {
-        if (!moveValue(file, mathOp->left, leftStatus, RAX, true, varTable, funcTable)) return false; //put left operand in rax
+    else { //load left operand in rax if not unary
+        if (mathOp->left->valueType != VALUE_MATH_OP) {
+            if (!moveValue(file, mathOp->left, leftStatus, RAX, true, varTable, funcTable)) return false; 
+        }
+        else {
+            if (!traverseMathOpTree(file, (MathOpNode*)mathOp->left->value, true, varTable, funcTable)) return false;
+        }
     }
-    if (!moveValue(file, mathOp->right, rightStatus, RCX, true, varTable, funcTable)) return false; //put right operand in rcx
+    //load right operand in rcx
+    if (mathOp->right->valueType != VALUE_MATH_OP) { 
+        if (!moveValue(file, mathOp->right, rightStatus, RCX, true, varTable, funcTable)) return false;
+    }
+    else {
+        if (!traverseMathOpTree(file, (MathOpNode*)mathOp->right->value, false, varTable, funcTable)) return false;
+    }
     switch (mathOp->opType) { //consult header file for how to handle each operator in detail
         case OP_BIT_NOT: //~
             fprintf(file, "\t;bitwise not (~)\n");
@@ -341,7 +358,6 @@ bool writeCode(FILE* file, ASTNode* head, VarTable* varTable, FuncTable* funcTab
         printf("\033[1;31mNull parameter to writeCode.\033[0m\n");
         return false;
     }
-
     ASTNode* current = head;
     while (current != NULL) {
         if (current->subNode == NULL) {
@@ -357,28 +373,13 @@ bool writeCode(FILE* file, ASTNode* head, VarTable* varTable, FuncTable* funcTab
                 VarEntry* var = ((VarAssignNode*)(current->subNode))->varInfo;
                 ValueNode* newVal = ((VarAssignNode*)(current->subNode))->newValue;
                 fprintf(file, "\t;assigning %s\n", var->name);
-                char sign = (var->stackOffset < 0) ? '-' : '+';
-                switch (newVal->valueType) {
-                    case VALUE_NUM:
-                        fprintf(file, "\tmov r10, %lld\n", *(long long*)newVal->value);
-                        fprintf(file, "\tmov [rbp%c%d], r10\n", sign, abs(var->stackOffset));
-                        break;
-                    case VALUE_VAR:
-                        fprintf(file, "\tmov r10, [rbp%c%d]\n", sign, abs(((VarEntry*)newVal->value)->stackOffset));
-                        fprintf(file, "\tmov [rbp%c%d], r10\n", sign, abs(var->stackOffset));
-                        break;
-                    case VALUE_FUNC_RET:
-                        if (!moveValue(file, newVal, UNPROCESSED, RAX, false, varTable, funcTable)) return false;
-                        fprintf(file, "\tmov [rbp%c%d], rax\n", sign, abs(var->stackOffset));
-                        break;
-                    case VALUE_MATH_OP:
-                        if (!traverseMathOpTree(file, (MathOpNode*)newVal->value, true, varTable, funcTable)) return false;
-                        fprintf(file, "\tmov [rbp%c%d], rax\n", sign, abs(var->stackOffset));
-                        break;
-                    default:
-                        printf("\033[1;31mInvalid value type %d in variable assignment.\033[0m\n", newVal->valueType);
-                        return false;
+                if (newVal->valueType != VALUE_MATH_OP) {
+                    if (!moveValue(file, newVal, UNPROCESSED, RAX, false, varTable, funcTable)) return false;
                 }
+                else {
+                    if (!traverseMathOpTree(file, (MathOpNode*)newVal->value, true, varTable, funcTable)) return false;
+                }
+                fprintf(file, "\tmov [rbp%c%d], rax\n", (var->stackOffset < 0) ? '-' : '+', abs(var->stackOffset));
                 break;
             case NODE_FUNC_DECL:
                 fprintf(file, "%s:\n", ((FuncDeclNode*)(current->subNode))->funcInfo->name);
@@ -388,28 +389,56 @@ bool writeCode(FILE* file, ASTNode* head, VarTable* varTable, FuncTable* funcTab
                 if (!writeCode(file, ((FuncDeclNode*)(current->subNode))->body, varTable, funcTable)) return false;
                 break;
             case NODE_WHILE:
-                //...
+                WhileNode* whileNode = (WhileNode*)(current->subNode);
+                fprintf(file, "\t;while loop\n");
+                fprintf(file, ".WHILE_START%p:\n", whileNode);
+                fprintf(file, "\t;evaluate condition\n");
+                if (whileNode->condition->valueType != VALUE_MATH_OP) {
+                    if (!moveValue(file, whileNode->condition, UNPROCESSED, RAX, false, varTable, funcTable)) return false;
+                }
+                else {
+                    if (!traverseMathOpTree(file, (MathOpNode*)whileNode->condition->value, true, varTable, funcTable)) return false;
+                }
+                fprintf(file, "\ttest rax, rax\n");
+                fprintf(file, "\tjz .WHILE_END%p\n", whileNode);
+                fprintf(file, "\t;execute body\n");
+                if (!writeCode(file, whileNode->body, varTable, funcTable)) return false;
+                fprintf(file, "\t;loop back\n");
+                fprintf(file, "\tjmp .WHILE_START%p\n", whileNode);
+                fprintf(file, ".WHILE_END%p:\n", whileNode);
                 break;
             case NODE_IF:
-                //...
+                IfNode* ifNode = (IfNode*)(current->subNode);
+                fprintf(file, "\t;if statement\n\t;evaluate condition\n");
+                if (ifNode->condition->valueType != VALUE_MATH_OP) {
+                    if (!moveValue(file, ifNode->condition, UNPROCESSED, RAX, false, varTable, funcTable)) return false;
+                }
+                else {
+                    if (!traverseMathOpTree(file, (MathOpNode*)ifNode->condition->value, true, varTable, funcTable)) return false;
+                }
+                fprintf(file, "\ttest rax, rax\n");
+                if (ifNode->elseBody == NULL) { //no else
+                    fprintf(file, "\tjz .IF_END%p\n", ifNode);
+                    if (!writeCode(file, ifNode->body, varTable, funcTable)) return false;
+                    fprintf(file, ".IF_END%p:\n", ifNode);
+                }
+                else {
+                    fprintf(file, "\tjz .IF_ELSE%p\n", ifNode);
+                    if (!writeCode(file, ifNode->body, varTable, funcTable)) return false;
+                    fprintf(file, "\tjmp .IF_END%p\n", ifNode);
+                    fprintf(file, ".IF_ELSE%p:\n", ifNode);
+                    if (!writeCode(file, ifNode->elseBody, varTable, funcTable)) return false;
+                    fprintf(file, ".IF_END%p:\n", ifNode);
+                }
                 break;
             case NODE_RETURN:
                 ValueNode* retVal = ((ReturnNode*)(current->subNode))->returnValue;
                 fprintf(file, "\t;get return value\n");
-                switch (retVal->valueType) {
-                    case VALUE_NUM:
-                    case VALUE_FUNC_RET:
-                        if (!moveValue(file, retVal, UNPROCESSED, RAX, false, varTable, funcTable)) return false;
-                        break;
-                    case VALUE_VAR:
-                        fprintf(file, "\tmov rax, [rbp%c%d]\n", (((VarEntry*)retVal->value)->stackOffset < 0) ? '-' : '+', abs(((VarEntry*)retVal->value)->stackOffset));
-                        break;
-                    case VALUE_MATH_OP:
-                        if (!traverseMathOpTree(file, (MathOpNode*)retVal->value, true, varTable, funcTable)) return false;
-                        break;
-                    default:
-                        printf("\033[1;31mInvalid value type %d in return statement.\033[0m\n", retVal->valueType);
-                        return false;
+                if (retVal->valueType != VALUE_MATH_OP) {
+                    if (!moveValue(file, retVal, UNPROCESSED, RAX, false, varTable, funcTable)) return false;
+                }
+                else {
+                    if (!traverseMathOpTree(file, (MathOpNode*)retVal->value, true, varTable, funcTable)) return false;
                 }
                 fprintf(file, "\t;restore stack\n");
                 fprintf(file, "\tmov rsp, rbp\n");

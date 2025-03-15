@@ -920,7 +920,16 @@ ValueNode* parseValueNode(Token* head, Token* endTok, VarTable* varTable, FuncTa
             break;
         case 1: //function call - use helper function
             newValNode->valueType = VALUE_FUNC_RET;
-            newValNode->value = parseFuncCall(head->nextToken, varTable, funcTable, numParams(head->nextToken));
+            int params = numParams(head->nextToken);
+            if (params == -1) {
+                printf("\033[1;31mInvalid function call in parseValueNode.\033[0m\n");
+                return NULL;
+            }
+            if (!funcLookup(funcTable, head->value, params)) {
+                printf("\033[1;31mUndefined function %s in parseValueNode.\033[0m\n", head->value);
+                return NULL;
+            }
+            newValNode->value = parseFuncCall(head->nextToken, varTable, funcTable, params);
             if (newValNode->value == NULL) {
                 printf("\033[1;31mError parsing function call in parseValueNode.\033[0m\n");
                 return NULL;

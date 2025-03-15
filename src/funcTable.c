@@ -46,7 +46,7 @@ FuncEntry* pushFuncEntry(FuncTable* table, char* name, int paramCount) {
     return table->entries[table->entryCount - 1];
 }
 FuncEntry* funcLookup(FuncTable* table, char* name, int paramCount) {
-    if (name == NULL || table) return NULL;
+    if (name == NULL || table == NULL) return NULL;
     for (int i = 0; i < table->entryCount; i++) {
         if (!strcmp(table->entries[i]->name, name) && table->entries[i]->paramCount == paramCount)
             return table->entries[i];

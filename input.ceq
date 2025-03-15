@@ -1,13 +1,18 @@
 #TODO
 #   -work on more concise error messages
 #   -semantic analysis phase (return value checking, dead code, check if new scope is actually needed)
-#   -finish other codegen constructions
 #   -incorporate the C standard library functions
 #   -Cequals language documentation
 #   -add more features (arrays, ...?)
+#   -fix segfaults when missing semicolons near EOF
 
-func main() {
-    return 0;
+func fib(depth) {
+    if (depth <= 1) {
+        return depth;
+    }
+    return fib(depth - 1) + fib(depth - 2);
 }
 
-#segfaults on math operations that go to EOF (no semicolon)
+func main() {
+    return fib(10);
+}
