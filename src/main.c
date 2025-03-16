@@ -48,7 +48,6 @@ int main(int argc, char** argv) {
         printf("\033[0;31mFATAL ERROR: failed to parse tokens\033[0m\n");
         return -5;
     }
-    printASTs(AST, 0); //DEBUG (temp)
     freeTokens(tokens);
 
     //CODE GENERATION

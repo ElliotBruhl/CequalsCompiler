@@ -16,14 +16,14 @@ fib:
 	setle cl
 	movzx rax, cl
 	test rax, rax
-	jz .IF_END0000016e573c9660
+	jz .IF_END0000027f85999660
 	;get return value
 	mov rax, [rbp+16]
 	;restore stack
 	mov rsp, rbp
 	pop rbp
 	ret
-.IF_END0000016e573c9660:
+.IF_END0000027f85999660:
 	;get return value
 	;preparing to call fib
 	push rcx

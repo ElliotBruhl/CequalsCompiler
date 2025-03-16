@@ -3,49 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Website</title>
+    <title>Compiler Information</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            line-height: 1.6;
+            background-color: #1e171f;
+            color: #fff;
             margin: 0;
             padding: 0;
         }
         header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 0;
+            background-color: #1e171f;
+            color: #fff;
+            padding: 20px;
             text-align: center;
+            border-bottom: 2px solid #3a2a3a;
+        }
+        header img {
+            width: 100px;
+            height: auto;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        main {
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            color: #f1f1f1;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+        code {
+            background-color: #3a2a3a;
+            padding: 4px 8px;
+            font-family: monospace;
         }
         section {
-            padding: 20px;
+            background-color: #2a1c2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        section h2 {
+            margin-top: 0;
+            color: #f1f1f1;
+        }
+        pre {
+            background-color: #2e2e2e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code-section {
+            margin-top: 20px;
         }
         footer {
+            background-color: #1e171f;
+            color: #fff;
             text-align: center;
             padding: 10px;
-            background-color: #333;
-            color: white;
             position: fixed;
             width: 100%;
             bottom: 0;
+            border-top: 2px solid #3a2a3a;
         }
     </style>
 </head>
+
 <body>
 
 <header>
-    <h1>Welcome to the Test Website</h1>
+    <img src="CequalsLogo.png" alt="Cequals Logo">
+    <h1>Cequals Documentation</h1>
 </header>
 
-<section>
-    <h2>About This Site</h2>
-    <p>This is a simple test website to showcase basic HTML structure and styles.</p>
-    <p>HTML, CSS, and JavaScript can be added to enhance functionality and appearance.</p>
-</section>
+<main>
+    <section>
+        <h2>General Information</h2>
+        <ul>
+            <li><strong>Language:</strong> Written in C (version C17 - compatible with C99+)</li>
+            <li><strong>Input:</strong> C= (Cequals) language (documentation here later)</li>
+            <li><strong>Output:</strong> x86-64 Assembly (NASM syntax) for Win64</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>How It Works</h2>
+        <p>The compilation process is broken into three main steps:</p>
+        <ol>
+            <li><strong>Tokenization</strong>: The input file is read, and a list of tokens is created. Tokens include words, numbers, or symbols that have specific meanings in the language.</li>
+            <li><strong>Parsing</strong>: The tokens are converted into an Abstract Syntax Tree (AST), a detailed, language-independent representation of the program. This step also detects and reports errors.</li>
+            <li><strong>Code Generation</strong>: The AST is transformed into x86 assembly code and written to the output file.</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>How to Use the Compiler (Win64)</h2>
+        <ol>
+            <li>Download the executable or compile it from the source files.</li>
+            <li>Create a folder with the executable, an input file (e.g., "input.txt"), and an output file (e.g., "output.txt").</li>
+            <li>Write some code in the input file.</li>
+            <li>Run the executable using command: <code>{executable name}.exe {input file name}.txt {output file name}.txt {optional arguments like -useLib}</code></li>
+            <li>Assemble the file using NASM: <code>nasm -f win64 -g output.asm -o output.obj</code></li>
+            <li>Link the file (must link with the C standard library) using GCC: <code>gcc output.obj -o output.exe -g</code></li>
+            <li>Run the output executable.</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>Exit Codes (`main.c`)</h2>
+        <ul>
+            <li><strong>0:</strong> Success</li>
+            <li><strong>-1:</strong> File read failed</li>
+            <li><strong>-2:</strong> Tokenizer failed</li>
+            <li><strong>-3:</strong> Variable symbol table creation failed</li>
+            <li><strong>-4:</strong> Function symbol table creation failed</li>
+            <li><strong>-5:</strong> Parser failed</li>
+            <li><strong>-6:</strong> Assembly generation failed</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>The Tokenizer (`tokenizer.c/h`)</h2>
+        <p>The tokenizer stores data in a <strong>doubly linked list</strong> of structs, where each node holds the following information:</p>
+        <ul>
+            <li><strong>Line number</strong></li>
+            <li><strong>Token type</strong></li>
+            <li><strong>Token value</strong></li>
+            <li><strong>Previous node</strong></li>
+            <li><strong>Next node</strong></li>
+        </ul>
+        <h3>Token Types</h3>
+        <ul>
+            <li><strong>Identifiers:</strong> Alphanumeric strings (except keywords).</li>
+            <li><strong>Numbers:</strong> Whole numbers in the range `-(2^63)` to `(2^63) - 1`.</li>
+            <li><strong>Operators:</strong> Almost all operators available in C.</li>
+            <li><strong>Keywords:</strong> Special reserved words in the language.</li>
+            <li><strong>Separators:</strong> Symbols like `;`, `()`, `{}`, and `,`.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>The Parser (`parser.c/h`)</h2>
+        <p>The parser stores a <strong>doubly linked list</strong> of structs, where each node holds:</p>
+        <ul>
+            <li><strong>Sub-node type indicator</strong></li>
+            <li><strong>Sub-node</strong></li>
+            <li><strong>Previous node</strong></li>
+            <li><strong>Next node</strong></li>
+        </ul>
+        <h3>AST Node Types</h3>
+        <ul>
+            <li><strong>Variable Declaration:</strong> Holds the variable name.</li>
+            <li><strong>Variable Assignment:</strong> Holds the variable name and new value.</li>
+            <li><strong>Function Declaration:</strong> Holds the function name, argument count, argument names, and function body.</li>
+            <li><strong>While Loop:</strong> Holds the loop condition and body.</li>
+            <li><strong>Conditional:</strong> Holds the condition, `if` body, and optional `else` body.</li>
+        </ul>
+
+        <h3>Math Operations</h3>
+        <p>Math operations are handled as follows:</p>
+        <ol>
+            <li>Tokens are converted into <strong>ValueNodes</strong>, structs that store operand types (number, variable, or function call).</li>
+            <li>ValueNodes are converted into a <strong>postfix expression</strong>, which eliminates the need for order-of-operations parsing.</li>
+            <li>The postfix expression is transformed into a <strong>binary tree</strong> of operators and operands.</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>Variable Table (`varTable.c/h`)</h2>
+        <ul>
+            <li>Tracks all variable names within a given scope.</li>
+            <li>Computes the offset of each variable from the base pointer of the scope.</li>
+            <li>Supports <strong>variable shadowing</strong> (name lookups start in the current scope and proceed outward).</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Function Table (`funcTable.c/h`)</h2>
+        <ul>
+            <li>Tracks all function names and their parameters.</li>
+            <li>Uses a <strong>single global scope</strong> for functions (no shadowing; duplicate function names overwrite each other).</li>
+        </ul>
+    </section>
+
+    <section class="code-section">
+        <h2>Code Generation</h2>
+        <p><strong>In Progress</strong></p>
+    </section>
+
+</main>
 
 <footer>
-    <p>&copy; 2025 Test Website. All rights reserved.</p>
+    <p>Compiler Documentation &copy; 2025</p>
 </footer>
 
 </body>
 </html>
+<!--
+old readme
+# Compiler Information
+
+- **Language**: Written in C (version C17 - compatible with C99+)
+- **Input**: C= (Cequals) language (documentation here later)
+- **Output**: x86-64 Assembly (NASM syntax) for Win64
+
+## How It Works
+
+The compilation process is broken into three main steps:
+
+1. **Tokenization**  
+   The input file is read, and a list of tokens is created. Tokens include words, numbers, or symbols that have specific meanings in the language.
+
+2. **Parsing**  
+   The tokens are converted into an Abstract Syntax Tree (AST), which is a highly detailed, language-independent representation of the program. This step also detects and reports errors.
+
+3. **Code Generation**  
+   The AST is transformed into x86 assembly code and written to the output file.
+
+## How to Use the Compiler (Win64)
+
+1. Download the executable or compile it from the source files
+2. Create a folder with the executable, an input file ex. "input.txt", and an output file ex. "output.txt"
+3. Write some code in the input file
+4. Run the executable using command: {executable name}.exe {input file name}.txt {output file name}.txt {optional arguments like -useLib}
+5. Assemble the file using NASM: nasm -f win64 -g output.asm -o output.obj
+6. Link the file (must link with the C standard library) using GCC: gcc output.obj -o output.exe -g
+7. Run the output executable.
+
+## Exit Codes (`main.c`)
+
+- `0`  – Success
+- `-1` – File read failed
+- `-2` – Tokenizer failed
+- `-3` – Variable symbol table creation failed
+- `-4` – Function symbol table creation failed
+- `-5` – Parser failed
+- `-6` – Assembly generation failed
+
+## The Tokenizer (`tokenizer.c/h`)
+
+The tokenizer stores data in a **doubly linked list** of structs, where each node holds the following information:
+
+- **Line number**
+- **Token type**
+- **Token value**
+- **Previous node**
+- **Next node**
+
+### Token Types
+
+1. **Identifiers** – Alphanumeric strings (except keywords).
+2. **Numbers** – Whole numbers in the range `-(2^63)` to `(2^63) - 1`.
+3. **Operators** – Almost all operators available in C.
+4. **Keywords** – Special reserved words in the language.
+5. **Separators** – Symbols like `;`, `()`, `{}`, and `,`.
+
+## The Parser (`parser.c/h`)
+
+The parser stores a **doubly linked list** of structs, where each node holds:
+
+- **Sub-node type indicator**
+- **Sub-node**
+- **Previous node**
+- **Next node**
+
+### AST Node Types
+
+Each sub-node is a struct containing the necessary details to generate code later:
+
+- **Variable Declaration** – Holds the variable name.
+- **Variable Assignment** – Holds the variable name and new value.
+- **Function Declaration** – Holds the function name, argument count, argument names, and function body.
+- **While Loop** – Holds the loop condition and body.
+- **Conditional** – Holds the condition, `if` body, and optional `else` body.
+
+### Math Operations
+
+Math operations are particularly tricky due to order of operations and mixed operand types. To handle this:
+
+1. Tokens are converted into **ValueNodes**, structs that store operand types (number, variable, or function call).
+2. ValueNodes are converted into a **postfix expression**, which eliminates the need for order-of-operations parsing.
+3. The postfix expression is then transformed into a **binary tree** of operators and operands.
+
+## Variable Table (`varTable.c/h`)
+
+- Tracks all variable names within a given scope.
+- Computes the offset of each variable from the base pointer of the scope.
+- Supports **variable shadowing** (name lookups start in the current scope and proceed outward).
+
+## Function Table (`funcTable.c/h`)
+
+- Tracks all function names and their parameters.
+- Uses a **single global scope** for functions (no shadowing; duplicate function names overwrite each other).
+
+## Code Generation
+
+**In Progress**
+-->
