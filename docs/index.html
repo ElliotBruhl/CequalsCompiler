@@ -4,210 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compiler Information</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            background-color: #1e171f;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #1e171f;
-            color: #fff;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 2px solid #3a2a3a;
-        }
-        header img {
-            width: 100px;
-            height: auto;
-            vertical-align: middle;
-            margin-right: 10px;
-        }
-        main {
-            margin: 20px;
-        }
-        h1, h2, h3 {
-            color: #f1f1f1;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            margin: 10px 0;
-        }
-        code {
-            background-color: #3a2a3a;
-            padding: 4px 8px;
-            font-family: monospace;
-        }
-        section {
-            background-color: #2a1c2a;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        section h2 {
-            margin-top: 0;
-            color: #f1f1f1;
-        }
-        pre {
-            background-color: #2e2e2e;
-            color: #fff;
-            padding: 15px;
-            border-radius: 5px;
-            font-family: monospace;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        .code-section {
-            margin-top: 20px;
-        }
-        footer {
-            background-color: #1e171f;
-            color: #fff;
-            text-align: center;
-            padding: 10px;
-            position: fixed;
-            width: 100%;
-            bottom: 0;
-            border-top: 2px solid #3a2a3a;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+    <header>
+        <a href="index.html">
+            <img src="CequalsLogo.png" alt="Cequals Logo" class="logo">
+        </a>
+        <h1 class="title">Cequals Documentation</h1>
+        <a href="https://github.com/ElliotBruhl" class="author">
+            <span>Elliot Bruhl</span>
+        </a>
+    </header>  
+    
+    <div class="content">
+        <h2>Table of Contents</h2>
+        <nav>
+            <ul>
+                <li><a href="#setup">Setup Guide</a>
+                    <ul>
+                        <li><a href="#tools">Installing Other Tools</a></li>
+                        <li><a href="#compiler">Installing the Compiler</a></li>
+                        <li><a href="#compiling">Setting Up and Compiling a Project</a></li>
+                    </ul>
+                </li>
+                <li><a href="#language">The Cequals Language</a>
+                    <ul>
+                        <li><a href="#declaring-main">Declaring main</a></li>
+                        <li><a href="#variables">Declaring and Assigning Variables</a>
+                            <ul>
+                                <li><a href="#math">Math Operations</a></li>
+                            </ul>
+                        </li>
+                        <li><a href="#conditionals">Conditional Statements</a></li>
+                        <li><a href="#loops">While Loops</a></li>
+                        <li><a href="#functions">Declaring and Calling Functions</a>
+                            <ul>
+                                <li><a href="#external-functions">Calling External Functions</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li><a href="#compiler-details">The Cequals Compiler</a>
+                    <ul>
+                        <li><a href="#main">Main</a></li>
+                        <li><a href="#tokenizer">Tokenizer</a></li>
+                        <li><a href="#varTable">varTable/funcTable</a></li>
+                        <li><a href="#parser">Parser</a></li>
+                        <li><a href="#codeGen">Code Generation</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
 
-<header>
-    <img src="CequalsLogo.png" alt="Cequals Logo">
-    <h1>Cequals Documentation</h1>
-</header>
+    
+        <h2 id="about">About</h2>
+        <p>
+            The Cequals language and compiler were made by me, high school student Elliot Bruhl, as an extracurricular 
+            project to learn more about how compilers and computers work at a lower level. I started by deciding to 
+            write the compiler in the C programming language, so that I could understand more exactly how memory worked.
+        </p>
+        <p>
+            The first month was used to learn C and make the project’s lexer. The next month was used to set up the data 
+            structures where the AST (Abstract Syntax Tree) and variable/function declarations would be stored after the parsing phase. 
+            The next two months were used for parsing math operations and function calls. The rest of the constructions, 
+            conditionals, loops, etc., were parsed in the following month. Learning x86 assembly (the output language) 
+            and writing the output code from the AST went quickly, only taking another month. The final month, for a total 
+            of seven, was used to add some extra features and create nicer-looking documentation.
+        </p>
+    </div>
 
-<main>
-    <section>
-        <h2>General Information</h2>
-        <ul>
-            <li><strong>Language:</strong> Written in C (version C17 - compatible with C99+)</li>
-            <li><strong>Input:</strong> C= (Cequals) language (documentation here later)</li>
-            <li><strong>Output:</strong> x86-64 Assembly (NASM syntax) for Win64</li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>How It Works</h2>
-        <p>The compilation process is broken into three main steps:</p>
-        <ol>
-            <li><strong>Tokenization</strong>: The input file is read, and a list of tokens is created. Tokens include words, numbers, or symbols that have specific meanings in the language.</li>
-            <li><strong>Parsing</strong>: The tokens are converted into an Abstract Syntax Tree (AST), a detailed, language-independent representation of the program. This step also detects and reports errors.</li>
-            <li><strong>Code Generation</strong>: The AST is transformed into x86 assembly code and written to the output file.</li>
-        </ol>
-    </section>
-
-    <section>
-        <h2>How to Use the Compiler (Win64)</h2>
-        <ol>
-            <li>Download the executable or compile it from the source files.</li>
-            <li>Create a folder with the executable, an input file (e.g., "input.txt"), and an output file (e.g., "output.txt").</li>
-            <li>Write some code in the input file.</li>
-            <li>Run the executable using command: <code>{executable name}.exe {input file name}.txt {output file name}.txt {optional arguments like -useLib}</code></li>
-            <li>Assemble the file using NASM: <code>nasm -f win64 -g output.asm -o output.obj</code></li>
-            <li>Link the file (must link with the C standard library) using GCC: <code>gcc output.obj -o output.exe -g</code></li>
-            <li>Run the output executable.</li>
-        </ol>
-    </section>
-
-    <section>
-        <h2>Exit Codes (`main.c`)</h2>
-        <ul>
-            <li><strong>0:</strong> Success</li>
-            <li><strong>-1:</strong> File read failed</li>
-            <li><strong>-2:</strong> Tokenizer failed</li>
-            <li><strong>-3:</strong> Variable symbol table creation failed</li>
-            <li><strong>-4:</strong> Function symbol table creation failed</li>
-            <li><strong>-5:</strong> Parser failed</li>
-            <li><strong>-6:</strong> Assembly generation failed</li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>The Tokenizer (`tokenizer.c/h`)</h2>
-        <p>The tokenizer stores data in a <strong>doubly linked list</strong> of structs, where each node holds the following information:</p>
-        <ul>
-            <li><strong>Line number</strong></li>
-            <li><strong>Token type</strong></li>
-            <li><strong>Token value</strong></li>
-            <li><strong>Previous node</strong></li>
-            <li><strong>Next node</strong></li>
-        </ul>
-        <h3>Token Types</h3>
-        <ul>
-            <li><strong>Identifiers:</strong> Alphanumeric strings (except keywords).</li>
-            <li><strong>Numbers:</strong> Whole numbers in the range `-(2^63)` to `(2^63) - 1`.</li>
-            <li><strong>Operators:</strong> Almost all operators available in C.</li>
-            <li><strong>Keywords:</strong> Special reserved words in the language.</li>
-            <li><strong>Separators:</strong> Symbols like `;`, `()`, `{}`, and `,`.</li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>The Parser (`parser.c/h`)</h2>
-        <p>The parser stores a <strong>doubly linked list</strong> of structs, where each node holds:</p>
-        <ul>
-            <li><strong>Sub-node type indicator</strong></li>
-            <li><strong>Sub-node</strong></li>
-            <li><strong>Previous node</strong></li>
-            <li><strong>Next node</strong></li>
-        </ul>
-        <h3>AST Node Types</h3>
-        <ul>
-            <li><strong>Variable Declaration:</strong> Holds the variable name.</li>
-            <li><strong>Variable Assignment:</strong> Holds the variable name and new value.</li>
-            <li><strong>Function Declaration:</strong> Holds the function name, argument count, argument names, and function body.</li>
-            <li><strong>While Loop:</strong> Holds the loop condition and body.</li>
-            <li><strong>Conditional:</strong> Holds the condition, `if` body, and optional `else` body.</li>
-        </ul>
-
-        <h3>Math Operations</h3>
-        <p>Math operations are handled as follows:</p>
-        <ol>
-            <li>Tokens are converted into <strong>ValueNodes</strong>, structs that store operand types (number, variable, or function call).</li>
-            <li>ValueNodes are converted into a <strong>postfix expression</strong>, which eliminates the need for order-of-operations parsing.</li>
-            <li>The postfix expression is transformed into a <strong>binary tree</strong> of operators and operands.</li>
-        </ol>
-    </section>
-
-    <section>
-        <h2>Variable Table (`varTable.c/h`)</h2>
-        <ul>
-            <li>Tracks all variable names within a given scope.</li>
-            <li>Computes the offset of each variable from the base pointer of the scope.</li>
-            <li>Supports <strong>variable shadowing</strong> (name lookups start in the current scope and proceed outward).</li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>Function Table (`funcTable.c/h`)</h2>
-        <ul>
-            <li>Tracks all function names and their parameters.</li>
-            <li>Uses a <strong>single global scope</strong> for functions (no shadowing; duplicate function names overwrite each other).</li>
-        </ul>
-    </section>
-
-    <section class="code-section">
-        <h2>Code Generation</h2>
-        <p><strong>In Progress</strong></p>
-    </section>
-
-</main>
-
-<footer>
-    <p>Compiler Documentation &copy; 2025</p>
-</footer>
-
-</body>
+    <footer>
+        <p>&copy; 2025 <a href="https://github.com/ElliotBruhl">Elliot Bruhl</a>. All Rights Reserved.
+        The <a href="https://github.com/ElliotBruhl/CequalsCompiler" target="_blank" rel="noopener noreferrer">Cequals Compiler</a> 
+        is licensed under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT License</a>.</p>
+    </footer>  
+    
+    </body>
 </html>
 <!--
 old readme

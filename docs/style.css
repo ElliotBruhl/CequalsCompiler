@@ -1,0 +1,84 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    background-color: #ffffff;
+    color: #000000;
+    margin: 0;
+    padding: 0;
+}
+
+/* Header styles */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #1e171f;
+    color: rgb(255, 255, 255);
+    padding: px;
+}
+
+/* Logo on the left */
+.logo {
+    width: 100px;
+    height: auto;
+    padding-left: 10px;
+}
+/* Title in the center */
+.title {
+    flex-grow: 1;
+    text-align: center;
+    margin: 0;
+    font-size: 40px;
+}
+/* Name on the right */
+.author {
+    text-decoration: none;
+    color: inherit;
+    font-weight: normal;
+    font-size: 18px;
+    padding-right: 10px;
+}
+
+.content {
+    padding-bottom: 10px;
+}
+
+/* Headings */
+h2, h3 {
+    color: #3a2a3a;
+}
+
+/* List layout */
+nav ul li { /* main 3 */
+    margin: 5px;
+}
+nav ul li ul { /* subtopics */
+    list-style-type: circle;
+    padding-left: 30px;
+}
+nav ul li ul ul { /* sub subtopics */
+    list-style-type: square;
+    padding-left: 40px;
+}
+
+/* Links */
+nav a {
+    text-decoration: none;
+    color: #3a2a3a;
+    font-weight: bold;
+}
+nav a:hover {
+    color: #5a3a5a;
+}
+
+/* Footer */
+footer {
+    position: relative;
+    bottom: 0;
+    width: 100%;
+    background-color: #1e171f;
+    padding: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: #ffffff;
+}
