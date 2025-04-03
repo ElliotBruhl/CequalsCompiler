@@ -9,19 +9,21 @@
 
 <body>
     <header>
-        <a href="index.html">
+        <a href="https://github.com/ElliotBruhl/CequalsCompiler" class="logo-link">
             <img src="CequalsLogo.png" alt="Cequals Logo" class="logo">
         </a>
         <h1 class="title">Cequals Documentation</h1>
         <a href="https://github.com/ElliotBruhl" class="author">
             <span>Elliot Bruhl</span>
         </a>
-    </header>  
+    </header>
     
     <div class="content">
-        <h2>Table of Contents</h2>
+        <h2 id="table-of-contents">Table of Contents</h2>
+        <hr>
         <nav>
             <ul>
+                <li><a href="#about">About</a></li>
                 <li><a href="#setup">Setup Guide</a>
                     <ul>
                         <li><a href="#tools">Installing Other Tools</a></li>
@@ -57,22 +59,64 @@
                 </li>
             </ul>
         </nav>
-
     
         <h2 id="about">About</h2>
+        <hr>
         <p>
-            The Cequals language and compiler were made by me, high school student Elliot Bruhl, as an extracurricular 
-            project to learn more about how compilers and computers work at a lower level. I started by deciding to 
-            write the compiler in the C programming language, so that I could understand more exactly how memory worked.
+            The Cequals language and compiler were made by Elliot Bruhl as a project to learn more about how compilers and 
+            computers work at a lower level. The compiler is written in the <a href="https://en.wikipedia.org/wiki/C_(programming_language)"> C programming language</a>, 
+            a good language for learning about low-level programming, and the output is <a href="https://en.wikipedia.org/wiki/X86_assembly_language"> x86 assembly</a>, 
+            a common assembly language close to machine code. The compiler was initially supposed to compile to <a href="https://llvm.org/docs/LangRef.html#abstract"> LLVM IR</a>,
+            but that would not have provided the same learning experience as writing assembly code.
+        </p>
+        <p>
+            The Cequals language is not a very practical language, as there are certain features than are implemented poorly or not at all (I/O operations, data types, and arrays/structs).
+            The language does serve as a good learning tool by providing a simple syntax and a one-to-one, annotated assembly output.
         </p>
         <p>
             The first month was used to learn C and make the project’s lexer. The next month was used to set up the data 
             structures where the AST (Abstract Syntax Tree) and variable/function declarations would be stored after the parsing phase. 
-            The next two months were used for parsing math operations and function calls. The rest of the constructions, 
-            conditionals, loops, etc., were parsed in the following month. Learning x86 assembly (the output language) 
-            and writing the output code from the AST went quickly, only taking another month. The final month, for a total 
-            of seven, was used to add some extra features and create nicer-looking documentation.
+            The next two months were used for parsing math operations and function calls. The rest of the constructions 
+            (conditionals, loops, etc.) were parsed in the following month. Learning x86 assembly (the output language) 
+            and writing the output code from the AST went quickly, only taking another month. The few months
+            were used to add some extra features and create nicer-looking documentation.
         </p>
+
+        <h2 id="setup">Setup Guide</h2>
+        <hr>
+        <h3 id="tools">Installing Other Tools</h3>
+
+        <h3 id="compiler">Installing the Compiler</h3>
+
+        <h3 id="compiling">Setting Up and Compiling a Project</h3>
+
+        <h2 id="language">The Cequals Language</h2>
+        <hr>
+        <h3 id="declaring-main">Declaring main</h3>
+
+        <h3 id="variables">Declaring and Assigning Variables</h3>
+        <h4 id="math">Math Operations</h4>
+
+        <h3 id="conditionals">Conditional Statements</h3>
+
+        <h3 id="loops">While Loops</h3>
+
+        <h3 id="functions">Declaring and Calling Functions</h3>
+        <h4 id="external-functions">Calling External Functions</h4>
+
+        <h2 id="compiler-details">The Cequals Compiler</h2>
+        <hr>
+
+        <h3 id="main">Main</h3>
+
+        <h3 id="tokenizer">Tokenizer</h3>
+
+        <h3 id="varTable">varTable/funcTable</h3>
+
+        <h3 id="parser">Parser</h3>
+
+        <h3 id="codeGen">Code Generation</h3>
+
     </div>
 
     <footer>

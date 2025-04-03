@@ -1,36 +1,31 @@
+/* Body Styles */
 body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
     background-color: #ffffff;
     color: #000000;
-    margin: 0;
-    padding: 0;
+    margin: 0px;
+    padding: 0px;
 }
 
 /* Header styles */
 header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background-color: #1e171f;
-    color: rgb(255, 255, 255);
-    padding: px;
+    background-color: #3b2d3d;
+    color: #FFFFFF;
 }
-
-/* Logo on the left */
 .logo {
     width: 100px;
-    height: auto;
+    height: 100px;
     padding-left: 10px;
+    padding-top: 10px;
 }
-/* Title in the center */
 .title {
     flex-grow: 1;
     text-align: center;
-    margin: 0;
     font-size: 40px;
 }
-/* Name on the right */
 .author {
     text-decoration: none;
     color: inherit;
@@ -41,34 +36,59 @@ header {
 
 .content {
     padding-bottom: 10px;
+    margin: 0px;
 }
 
 /* Headings */
-h2, h3 {
-    color: #3a2a3a;
+h2 {
+    text-align: center;
+    color: #3b2d3d;
+    font-size: 28px;
+    padding-bottom: 0px;
+    padding-top: 10px;
+    margin: 0px;
+}
+hr {
+    border: none;
+    height: 5px;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(59, 45, 61, 0.75), rgba(255, 255, 255, 0));
 }
 
-/* List layout */
-nav ul li { /* main 3 */
-    margin: 5px;
+/* Table of Contents lists */
+nav {
+    font-size: 18px;
+    padding-left: 20px;
+    margin: 0px;
 }
-nav ul li ul { /* subtopics */
+nav ul {
+    padding-left: 10px;
+    margin: 0px;
+}
+nav ul li ul {
     list-style-type: circle;
-    padding-left: 30px;
+    padding-left: 25px;
 }
-nav ul li ul ul { /* sub subtopics */
+nav ul li ul ul {
     list-style-type: square;
-    padding-left: 40px;
+    padding-left: 30px;
 }
 
 /* Links */
-nav a {
+a {
     text-decoration: none;
-    color: #3a2a3a;
+    color: #833583;
     font-weight: bold;
 }
-nav a:hover {
-    color: #5a3a5a;
+a:hover {
+    color: #2c0131;
+}
+
+/* Text */
+p {
+    text-indent: 25px;
+    font-size: 18px;
+    padding-left: 10px;
+    margin: 0px;
 }
 
 /* Footer */
@@ -76,7 +96,7 @@ footer {
     position: relative;
     bottom: 0;
     width: 100%;
-    background-color: #1e171f;
+    background-color: #3b2d3d;
     padding: 20px;
     text-align: center;
     font-size: 14px;
