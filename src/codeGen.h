@@ -4,14 +4,16 @@
 #include "parser.h"
 
 typedef enum {      //describes where a piece of data is
+    ERROR,          //for empty left branch of unary operators
     UNPROCESSED,    //value has not been loaded yet (fetch it from ValueNode)
     RAX,            //value was a left branch result
     RCX,            //value was a right branch result
+    RDX,            //parameter register for C std lib functions
     STACK           //value is on top of the stack
 } ValueStatus;
 
-bool traverseMathOpTree(FILE* file, MathOpNode* mathAST, bool isLeft, VarTable* varTable, FuncTable* funcTable); //temp (testing)
-bool codeGen(FILE* file, ASTNode* head, VarTable* varTable, FuncTable* funcTable);
+bool traverseMathOpTree(FILE* file, MathOpNode* mathAST, bool isLeft); //temp (testing)
+bool codeGen(FILE* file, ASTNode* head, bool usePrintf, bool useScanf, bool useMalloc, bool useFree);
 
 /*
 C standard library supported functions:

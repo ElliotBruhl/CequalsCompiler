@@ -2,69 +2,56 @@ default rel
 
 section .text
 	global main
+	extern printf
 
-fib:
-	;prepare stack
-	push rbp
-	mov rbp, rsp
-	;if statement
-	;evaluate condition
-	mov rax, [rbp+16]
-	mov rcx, 1
-	;less than or equal (<=)
-	cmp rax, rcx
-	setle cl
-	movzx rax, cl
-	test rax, rax
-	jz .IF_END0000027f85999660
-	;get return value
-	mov rax, [rbp+16]
-	;restore stack
-	mov rsp, rbp
-	pop rbp
-	ret
-.IF_END0000027f85999660:
-	;get return value
-	;preparing to call fib
-	push rcx
-	mov rax, [rbp+16]
-	mov rcx, 1
-	;subtraction (-)
-	sub rax, rcx
-	push rax
-	call fib
-	;reclaim stack space
-	add rsp, 8
-	pop rcx
-	;preparing to call fib
-	push rax
-	mov rax, [rbp+16]
-	mov rcx, 2
-	;subtraction (-)
-	sub rax, rcx
-	push rax
-	call fib
-	;reclaim stack space
-	add rsp, 8
-	mov rcx, rax
-	pop rax
-	;addition (+)
-	add rax, rcx
-	;restore stack
-	mov rsp, rbp
-	pop rbp
-	ret
 main:
 	;prepare stack
 	push rbp
 	mov rbp, rsp
+	;declaring str1
+	sub rsp, 8
+	;declaring str2
+	sub rsp, 8
+	;declaring result
+	sub rsp, 8
+	;assigning str1
+	mov rax, 24523985906328904
+	mov [rbp-8], rax
+	;assigning str2
+	mov rax, 11138535027311
+	mov [rbp-16], rax
+	;assigning result
+	;preparing to call printf
+	;preparing arguments
+	;reference operator (&)
+	lea rcx, [rbp-8]
+	mov rdx, 0
+	;preparing stack
+	push rbx
+	mov rbx, rsp
+	and rsp, -16
+	sub rsp, 32
+	call printf
+	mov rsp, rbx
+	pop rbx
+	mov [rbp-24], rax
+	;assigning result
+	;preparing to call printf
+	;preparing arguments
+	;reference operator (&)
+	lea rcx, [rbp-16]
+	mov rdx, 0
+	;preparing stack
+	push rbx
+	mov rbx, rsp
+	and rsp, -16
+	sub rsp, 32
+	call printf
+	mov rsp, rbx
+	pop rbx
+	mov [rbp-24], rax
 	;get return value
-	;preparing to call fib
-	mov r10, 10
-	push r10
-	call fib
-	;reclaim stack space
-	add rsp, 8
+	mov rax, 0
 	;restore stack
 	mov rsp, rbp
 	pop rbp
