@@ -64,32 +64,57 @@
         <hr>
         <p>
             The Cequals language and compiler were made by Elliot Bruhl as a project to learn more about how compilers and 
-            computers work at a lower level. The compiler is written in the <a href="https://en.wikipedia.org/wiki/C_(programming_language)"> C programming language</a>, 
-            a good language for learning about low-level programming, and the output is <a href="https://en.wikipedia.org/wiki/X86_assembly_language"> x86 assembly</a>, 
-            a common assembly language close to machine code. The compiler was initially supposed to compile to <a href="https://llvm.org/docs/LangRef.html#abstract"> LLVM IR</a>,
-            but that would not have provided the same learning experience as writing assembly code.
+            computers work at a lower level. The compiler is written in the <a href="https://en.wikipedia.org/wiki/C_(programming_language)"> C programming language</a>
+            , and the output is <a href="https://en.wikipedia.org/wiki/X86_assembly_language"> x86 assembly</a>, intended for the Win64 platform. 
         </p>
         <p>
-            The Cequals language is not a very practical language, as there are certain features than are implemented poorly or not at all (I/O operations, data types, and arrays/structs).
-            The language does serve as a good learning tool by providing a simple syntax and a one-to-one, annotated assembly output.
+            The Cequals language is not a very practical language, as there are certain important features that are implemented poorly or not at all.
+            However, the language does serve as a good learning tool by providing a simple syntax and a literal, annotated assembly output.
         </p>
         <p>
-            The first month was used to learn C and make the project’s lexer. The next month was used to set up the data 
-            structures where the AST (Abstract Syntax Tree) and variable/function declarations would be stored after the parsing phase. 
-            The next two months were used for parsing math operations and function calls. The rest of the constructions 
-            (conditionals, loops, etc.) were parsed in the following month. Learning x86 assembly (the output language) 
-            and writing the output code from the AST went quickly, only taking another month. The few months
-            were used to add some extra features and create nicer-looking documentation.
+            This project was started in September 2024 and was completed in August 2025. The project was built in a series of phases, each lasting about a month.
+            The first month was used to learn C and make the project’s lexer. The next month was used to set up the data
+            structures that the AST (Abstract Syntax Tree) would use during the parsing phase.
+            The next two months were used for parsing math operations and function calls. The rest of the constructions were parsed in the following month. Learning x86 assembly
+            and writing the output code from the AST took another month. The remaining months were used writing the documentation, fixing bugs, and adding more features.
         </p>
 
         <h2 id="setup">Setup Guide</h2>
         <hr>
         <h3 id="tools">Installing Other Tools</h3>
-
+        <p>
+            To compile and run Cequals programs, you must install these two tools:
+        </p>
+        <ul>
+            <li><a href="https://www.nasm.us/">NASM</a> - Assembler for x86 assembly code.</li>
+            <li><a href="https://gcc.gnu.org/">GCC</a> - Compiler for linking the assembly code into an executable.</li>
+        </ul>
+        <p>
+            Ensure that both are installed and added to your system's PATH. Verify the installation by running <code>gcc -v</code> and <code>nasm -v</code> in your command prompt.
+        </p>
         <h3 id="compiler">Installing the Compiler</h3>
+        <p>
+            The Cequals compiler is available as a pre-compiled executable. You can download it from <a href="https://github.com/ElliotBruhl/CequalsCompiler/tree/main/binaries">this folder</a> on GitHub.
+            Alternatively, you can compile it from the source code that is available at <a href="https://github.com/ElliotBruhl/CequalsCompiler/tree/main/src">this folder</a> on GitHub.
+        </p>
 
         <h3 id="compiling">Setting Up and Compiling a Project</h3>
-
+        <p>
+            To set up a Cequals project, create a folder containing the Cequals compiler executable, an input file (e.g., <code>setupTest.ceq</code>), and an output file (e.g., <code>setupTest.asm</code>).
+            Write your Cequals code in the input file. As an example, you can use the following code:
+            <pre><code>     func main() {
+        return 0;
+    }</code></pre>
+            To compile and run the project, open a command prompt in the project folder and run the following commands:
+            <ul>
+                <li><code>cequals.exe setupTest.ceq setupTest.asm</code> to compile the code,</li>
+                <li><code>nasm -f win64 setupTest.asm -o setupTest.obj</code> to assemble the code,</li>
+                <li><code>gcc setupTest.obj -o setupTest.exe</code> to link the code,</li>
+                <li><code>setupTest.exe</code> to run the executable, and finally</li>
+                <li><code>echo return value: %ERRORLEVEL%</code> to print the return value and verify that it matches the value in the input file.</li>
+            </ul>
+        </p>
+        
         <h2 id="language">The Cequals Language</h2>
         <hr>
         <h3 id="declaring-main">Declaring main</h3>
@@ -225,6 +250,3 @@ Math operations are particularly tricky due to order of operations and mixed ope
 - Uses a **single global scope** for functions (no shadowing; duplicate function names overwrite each other).
 
 ## Code Generation
-
-**In Progress**
--->

@@ -1,0 +1,43 @@
+func fib(n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+
+func main() {
+    var n;
+    var result;
+    var formatStr1;
+    var formatStr2;
+    var formatStr3;
+    var formatStr4;
+    var temp;
+
+    # Print prompt for user input
+    formatStr1 = 27338748441423429; # Strings for "Enter a number: "
+    formatStr2 = 32199620762627616;
+    formatStr3 = 8250;
+    temp = printf(&formatStr1, 0);
+    temp = printf(&formatStr2, 0);
+    temp = printf(&formatStr3, 0);
+
+    # Read input number
+    formatStr4 = 1684827173; # String for "%lld"
+    temp = scanf(&formatStr4, &n);
+
+    # Calculate Fibonacci number
+    result = fib(n);
+
+    # Print the result
+    formatStr1 = 27973149637372230; # Strings for "Fibonacci of %lld is %lld"
+    formatStr2 = 35624323148131;
+    formatStr3 = 544434464;
+    temp = printf(&formatStr1, 0);
+    temp = printf(&formatStr2, 0);
+    temp = printf(&formatStr4, n);
+    temp = printf(&formatStr3, 0);
+    temp = printf(&formatStr4, result);
+
+    return 0;
+}
